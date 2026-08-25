@@ -53,11 +53,8 @@ async function initDB() {
                 )
             END
         `);
-
-        // 3. טבלת משחקים (ההערה תוקנה לסימון של SQL כדי למנוע קריסה!)
+        // 3. טבלת משחקים
         await sql.query(`
-            -- ליתר ביטחון
-            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Courts' and xtype='U') 
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Games' and xtype='U')
             BEGIN
                 CREATE TABLE Games (
@@ -70,6 +67,8 @@ async function initDB() {
                 )
             END
         `);
+
+    
 
         // 4. טבלת הודעות צ'אט
         await sql.query(`
