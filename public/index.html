@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SportMatch - מפה ומשחקים</title>
     <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#007bff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#007bff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <!-- התוסף החדש למפת החום! -->
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-<link rel="stylesheet" href="css/style.css">
+    
+    <!-- קובץ העיצוב החיצוני שלנו -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -80,7 +82,6 @@
         
         <div class="form-container">
             <h3>➕ פתח משחק חדש</h3>
-            <!-- העפנו את ה-form המקורי כדי שלא יחסום אותנו -->
             <div id="newGameForm">
                 <input type="text" id="searchBox" class="app-input" placeholder="🔍 הקלד שם מגרש לחיפוש מהיר...">
                 <select id="courtId" class="app-input"><option value="">מחפש מיקום... 📍</option></select>
@@ -95,7 +96,6 @@
                 <div class="time-picker-wrapper" id="timePickerWrapper" style="display: none;">
                     <select id="gameHour"></select><span class="time-picker-separator">:</span><select id="gameMinute"></select>
                 </div>
-                <!-- הכפתור עכשיו קורא ישירות לפונקציה שלנו -->
                 <button type="button" class="submit-btn" onclick="createNewGame()">פתח משחק!</button>
             </div>
         </div>
@@ -129,6 +129,7 @@
     <script>
         // ==========================================
         // הניתוב החכם של ההתחברות (Smart Routing)
+        // משתנים גלובליים שגם auth.js משתמש בהם
         // ==========================================
         let myUserId = localStorage.getItem('sportMatchUserId');
         let myUsername = localStorage.getItem('sportMatchUser');
@@ -142,98 +143,6 @@
             const minuteSelect = document.getElementById('gameMinute');
             for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${String(i).padStart(2, '0')}">${String(i).padStart(2, '0')}</option>`;
         };
-
-        function switchAuthTab(tab) {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('registerForm').style.display = 'none';
-            document.getElementById('forgotForm').style.display = 'none';
-            
-            if (tab === 'forgot') {
-                document.getElementById('authTabs').style.display = 'none';
-                document.getElementById('forgotForm').style.display = 'block';
-            } else {
-                document.getElementById('authTabs').style.display = 'flex';
-                if(tab === 'login') {
-                    document.getElementById('tabLogin').classList.add('active');
-                    document.getElementById('tabRegister').classList.remove('active');
-                    document.getElementById('loginForm').style.display = 'block';
-                } else {
-                    document.getElementById('tabRegister').classList.add('active');
-                    document.getElementById('tabLogin').classList.remove('active');
-                    document.getElementById('registerForm').style.display = 'block';
-                }
-            }
-        }
-
-        // לוגיקת הרשמה
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const fullName = document.getElementById('regName').value;
-            const phone = document.getElementById('regPhone').value;
-            const password = document.getElementById('regPassword').value;
-            try {
-                const res = await fetch('/api/register', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fullName, phone, password })
-                });
-                const data = await res.json();
-                if(res.ok) {
-                    alert("נרשמת בהצלחה! בבקשה התחבר.");
-                    switchAuthTab('login');
-                    document.getElementById('loginPhone').value = phone;
-                } else { 
-                    alert(data.error);
-                    if(data.code === 'already_exists') {
-                        switchAuthTab('login');
-                        document.getElementById('loginPhone').value = phone;
-                    }
-                }
-            } catch(err) { alert("שגיאת תקשורת"); }
-        });
-
-        // לוגיקת התחברות
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const phone = document.getElementById('loginPhone').value;
-            const password = document.getElementById('loginPassword').value;
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, password })
-                });
-                const data = await res.json();
-                if(res.ok) {
-                    localStorage.setItem('sportMatchUserId', data.userId);
-                    localStorage.setItem('sportMatchUser', data.userName);
-                    myUserId = data.userId; myUsername = data.userName;
-                    showMainApp();
-                } else { 
-                    alert(data.error); 
-                    if(data.code === 'not_found') {
-                        switchAuthTab('register');
-                        document.getElementById('regPhone').value = phone;
-                    }
-                }
-            } catch(err) { alert("שגיאת תקשורת"); }
-        });
-
-        // לוגיקת איפוס סיסמה
-        document.getElementById('forgotForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const phone = document.getElementById('forgotPhone').value;
-            const newPassword = document.getElementById('forgotNewPassword').value;
-            try {
-                const res = await fetch('/api/reset-password', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, newPassword })
-                });
-                const data = await res.json();
-                alert(data.message || data.error);
-                if(res.ok) {
-                    switchAuthTab('login');
-                    document.getElementById('loginPhone').value = phone;
-                }
-            } catch(err) { alert("שגיאת תקשורת"); }
-        });
-
-        function logout() { localStorage.removeItem('sportMatchUserId'); localStorage.removeItem('sportMatchUser'); location.reload(); }
 
         function showMainApp() {
             document.getElementById('authScreen').style.display = 'none';
@@ -502,5 +411,9 @@
 
         function closeModal() { document.getElementById('whatsappModal').style.display = 'none'; }
     </script>
+
+    <!-- ייבוא קובץ ניהול המשתמשים החיצוני שלנו -->
+    <script src="js/auth.js"></script>
+
 </body>
 </html>
