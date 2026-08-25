@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ app.js - מנגנון הליבה: מפה, משחקים וסינון מתורגם!
+// קובץ app.js - מנגנון הליבה
 // ==========================================
 
 let myUserId = localStorage.getItem('sportMatchUserId');
@@ -19,7 +19,6 @@ function showMainApp() {
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     
-    // משיכת ברכת השלום מהמילון
     document.getElementById('welcomeMessage').innerText = t("welcome").replace('{name}', myUsername);
     
     setTimeout(() => { map.invalidateSize(); loadCourtsAndLocation(); loadGames(); }, 300);
@@ -44,7 +43,7 @@ function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 window.toggleDarkMode = toggleDarkMode;
 
 // ==========================================
-// הגדרת המפה והחלפת שפה דינמית
+// הגדרת המפה והחלפת שפה דינמית (מתוקן!)
 // ==========================================
 const map = L.map('map').setView([31.9685, 34.7700], 13); 
 let currentTileLayer = null;
@@ -53,10 +52,8 @@ function updateMapLanguage(lang) {
     if (currentTileLayer) { map.removeLayer(currentTileLayer); }
     
     if (lang === 'en') {
-        // מפה באנגלית (CartoDB)
         currentTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png');
     } else {
-        // מפה בעברית (OpenStreetMap)
         currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
     }
     currentTileLayer.addTo(map);
@@ -69,7 +66,6 @@ const footballIcon = L.divIcon({ html: '<div style="font-size: 26px;">⚽</div>'
 let allCourts = []; let allGames = []; let userHasLocation = false; let selectedSportFilter = 'all'; 
 let heatLayer = null; 
 
-// פונקציית עזר להצגת שם המגרש לפי שפה
 function getDisplayCourtName(court) {
     return (currentLang === 'en' && court.CourtNameEn) ? court.CourtNameEn : court.CourtName;
 }
@@ -124,7 +120,6 @@ async function loadCourtsAndLocation() {
         allCourts.forEach(court => {
             const icon = court.SportType === 'Football' ? footballIcon : basketballIcon;
             const marker = L.marker([court.Latitude, court.Longitude], {icon: icon}); 
-            // הצגת שם המגרש המתורגם במפה!
             marker.bindPopup(`<b>${getDisplayCourtName(court)}</b>`); 
             court.marker = marker; 
         });
@@ -133,7 +128,6 @@ async function loadCourtsAndLocation() {
                 userHasLocation = true; 
                 const myLat = position.coords.latitude; const myLon = position.coords.longitude;
                 map.setView([myLat, myLon], 13);
-                // תרגום פופ-אפ מפה ("אתה כאן!")
                 L.marker([myLat, myLon]).addTo(map).bindPopup(t("youAreHere"));
                 allCourts.forEach(c => c.distanceKm = calcDistanceKm(myLat, myLon, c.Latitude, c.Longitude));
                 allCourts.sort((a, b) => a.distanceKm - b.distanceKm); 
@@ -148,14 +142,12 @@ function populateDropdown(searchTerm) {
     const courtSelect = document.getElementById('courtId'); 
     courtSelect.innerHTML = `<option value="">${t("selectPlaceholder")}</option>`; 
     allCourts.filter(c => {
-        // חיפוש חכם שתומך גם בעברית וגם באנגלית
         const matchName = c.CourtName.includes(searchTerm) || (c.CourtNameEn && c.CourtNameEn.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchSport = (selectedSportFilter === 'all' || c.SportType === selectedSportFilter);
         const isCloseEnough = !userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10);
         return matchName && matchSport && isCloseEnough;
     }).slice(0, 50).forEach(court => {
         const option = document.createElement('option'); option.value = court.CourtID;
-        // שימוש בשם המגרש המתורגם לרשימה
         option.textContent = `${getDisplayCourtName(court)} ${court.SportType === 'Football' ? '⚽' : '🏀'} ${(userHasLocation && court.distanceKm !== undefined) ? `(${court.distanceKm.toFixed(1)} ${t("distanceKm")})` : ''}`;
         courtSelect.appendChild(option);
     });
@@ -191,7 +183,6 @@ function renderGamesList() {
         const timeBadgeHtml = diffMins <= 30 ? `<div class="time-badge time-now">${t("happeningNow").replace('{time}', timeString)}</div>` : `<div class="time-badge time-future">${t("futureGame").replace('{time}', timeString)}</div>`;
         const distanceHtml = userHasLocation && c.distanceKm ? `<div class="detail" style="color: #3498db; font-size: 0.95em; margin-top: 5px;">(${c.distanceKm.toFixed(1)} ${t("awayFromYou")})</div>` : '';
         
-        // שימוש בשם המגרש המתורגם בכרטיסייה
         card.innerHTML = `<div class="court-name">${c.SportType === 'Football' ? '⚽' : '🏀'} 📍 ${getDisplayCourtName(c)}</div><div class="detail"><strong>${t("creator")}</strong> ${game.CreatorName}</div>${timeBadgeHtml}${distanceHtml}<div class="badge">${t("missingBadge").replace('{count}', game.MissingPlayers)}</div><div class="btn-group"><button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">${t("joinBtn")}</button><button class="chat-btn" onclick="openChat(${game.GameID}, '${game.CourtName}')">${t("chatBtn")}</button></div>`;
         container.appendChild(card);
     });

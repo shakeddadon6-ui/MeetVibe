@@ -73,12 +73,13 @@ function setLanguage(lang) {
         el.placeholder = t(el.getAttribute('data-i18n-placeholder')); 
     });
 
-    if (window.myUsername) {
+    // תיקון: משיכת השם ישירות מהזיכרון המקומי
+    const savedUsername = localStorage.getItem('sportMatchUser');
+    if (savedUsername) {
         const welcomeEl = document.getElementById('welcomeMessage');
-        if (welcomeEl) welcomeEl.innerText = t("welcome").replace('{name}', window.myUsername);
+        if (welcomeEl) welcomeEl.innerText = t("welcome").replace('{name}', savedUsername);
     }
     
-    // מעדכן את המפה לשפה הנכונה מיד עם החלפת השפה!
     if (window.updateMapLanguage) {
         window.updateMapLanguage(lang);
     }
