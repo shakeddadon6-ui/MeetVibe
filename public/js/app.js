@@ -43,13 +43,36 @@ window.setTimeMode = setTimeMode;
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 window.toggleDarkMode = toggleDarkMode;
 
+// ==========================================
+// הגדרת המפה והחלפת שפה דינמית
+// ==========================================
 const map = L.map('map').setView([31.9685, 34.7700], 13); 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+let currentTileLayer = null;
+
+function updateMapLanguage(lang) {
+    if (currentTileLayer) { map.removeLayer(currentTileLayer); }
+    
+    if (lang === 'en') {
+        // מפה באנגלית (CartoDB)
+        currentTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png');
+    } else {
+        // מפה בעברית (OpenStreetMap)
+        currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    }
+    currentTileLayer.addTo(map);
+}
+window.updateMapLanguage = updateMapLanguage;
+
 const basketballIcon = L.divIcon({ html: '<div style="font-size: 26px;">🏀</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
 const footballIcon = L.divIcon({ html: '<div style="font-size: 26px;">⚽</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
 
 let allCourts = []; let allGames = []; let userHasLocation = false; let selectedSportFilter = 'all'; 
 let heatLayer = null; 
+
+// פונקציית עזר להצגת שם המגרש לפי שפה
+function getDisplayCourtName(court) {
+    return (currentLang === 'en' && court.CourtNameEn) ? court.CourtNameEn : court.CourtName;
+}
 
 function updateHeatmap() {
     if (heatLayer) { map.removeLayer(heatLayer); } 
@@ -101,7 +124,8 @@ async function loadCourtsAndLocation() {
         allCourts.forEach(court => {
             const icon = court.SportType === 'Football' ? footballIcon : basketballIcon;
             const marker = L.marker([court.Latitude, court.Longitude], {icon: icon}); 
-            marker.bindPopup(`<b>${court.CourtName}</b>`); 
+            // הצגת שם המגרש המתורגם במפה!
+            marker.bindPopup(`<b>${getDisplayCourtName(court)}</b>`); 
             court.marker = marker; 
         });
         if (navigator.geolocation) {
@@ -122,17 +146,17 @@ window.loadCourtsAndLocation = loadCourtsAndLocation;
 
 function populateDropdown(searchTerm) {
     const courtSelect = document.getElementById('courtId'); 
-    // תרגום פלייס-הולדר "-- בחר מגרש --"
     courtSelect.innerHTML = `<option value="">${t("selectPlaceholder")}</option>`; 
     allCourts.filter(c => {
-        const matchName = c.CourtName.includes(searchTerm);
+        // חיפוש חכם שתומך גם בעברית וגם באנגלית
+        const matchName = c.CourtName.includes(searchTerm) || (c.CourtNameEn && c.CourtNameEn.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchSport = (selectedSportFilter === 'all' || c.SportType === selectedSportFilter);
         const isCloseEnough = !userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10);
         return matchName && matchSport && isCloseEnough;
     }).slice(0, 50).forEach(court => {
         const option = document.createElement('option'); option.value = court.CourtID;
-        // תרגום מרחק "ק"מ" ברשימה
-        option.textContent = `${court.CourtName} ${court.SportType === 'Football' ? '⚽' : '🏀'} ${(userHasLocation && court.distanceKm !== undefined) ? `(${court.distanceKm.toFixed(1)} ${t("distanceKm")})` : ''}`;
+        // שימוש בשם המגרש המתורגם לרשימה
+        option.textContent = `${getDisplayCourtName(court)} ${court.SportType === 'Football' ? '⚽' : '🏀'} ${(userHasLocation && court.distanceKm !== undefined) ? `(${court.distanceKm.toFixed(1)} ${t("distanceKm")})` : ''}`;
         courtSelect.appendChild(option);
     });
 }
@@ -152,7 +176,6 @@ function renderGamesList() {
         return c && (selectedSportFilter === 'all' || c.SportType === selectedSportFilter) && (!userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10)); 
     });
     
-    // תרגום הודעת "אין משחקים פתוחים"
     if (filtered.length === 0) { 
         container.innerHTML = `<p>${t("noGames")}</p>`; 
         return; 
@@ -165,12 +188,11 @@ function renderGamesList() {
         const c = allCourts.find(court => court.CourtName === game.CourtName);
         const card = document.createElement('div'); card.className = 'game-card';
         
-        // תרגום "קורה עכשיו" ו-"עתידי"
         const timeBadgeHtml = diffMins <= 30 ? `<div class="time-badge time-now">${t("happeningNow").replace('{time}', timeString)}</div>` : `<div class="time-badge time-future">${t("futureGame").replace('{time}', timeString)}</div>`;
-        // תרגום "ק"מ ממך"
         const distanceHtml = userHasLocation && c.distanceKm ? `<div class="detail" style="color: #3498db; font-size: 0.95em; margin-top: 5px;">(${c.distanceKm.toFixed(1)} ${t("awayFromYou")})</div>` : '';
         
-        card.innerHTML = `<div class="court-name">${c.SportType === 'Football' ? '⚽' : '🏀'} 📍 ${game.CourtName}</div><div class="detail"><strong>${t("creator")}</strong> ${game.CreatorName}</div>${timeBadgeHtml}${distanceHtml}<div class="badge">${t("missingBadge").replace('{count}', game.MissingPlayers)}</div><div class="btn-group"><button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">${t("joinBtn")}</button><button class="chat-btn" onclick="openChat(${game.GameID}, '${game.CourtName}')">${t("chatBtn")}</button></div>`;
+        // שימוש בשם המגרש המתורגם בכרטיסייה
+        card.innerHTML = `<div class="court-name">${c.SportType === 'Football' ? '⚽' : '🏀'} 📍 ${getDisplayCourtName(c)}</div><div class="detail"><strong>${t("creator")}</strong> ${game.CreatorName}</div>${timeBadgeHtml}${distanceHtml}<div class="badge">${t("missingBadge").replace('{count}', game.MissingPlayers)}</div><div class="btn-group"><button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">${t("joinBtn")}</button><button class="chat-btn" onclick="openChat(${game.GameID}, '${game.CourtName}')">${t("chatBtn")}</button></div>`;
         container.appendChild(card);
     });
 }
@@ -180,7 +202,6 @@ async function joinGame(gameId, courtName) {
     try {
         const response = await fetch(`/api/games/${gameId}/join`, { method: 'PUT' });
         const data = await response.json();
-        // תרגום הצטרפות בהצלחה
         if (response.ok) { alert(t("joinedSuccess")); loadGames(); openChat(gameId, courtName); } else { alert(data.error); }
     } catch (error) { alert(t("netError")); }
 }
@@ -190,7 +211,6 @@ async function createNewGame() {
     const courtId = document.getElementById('courtId').value; 
     const missingPlayers = document.getElementById('missingPlayers').value; 
     
-    // תרגום התראות של חסר מגרש / שחקנים
     if (!courtId) { alert(t("selectCourtAlert")); return; }
     if (!missingPlayers || missingPlayers < 1) { alert(t("missingPlayersAlert")); return; }
 
@@ -199,13 +219,13 @@ async function createNewGame() {
         sqlStartTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
     } else {
         const hStr = document.getElementById('gameHour').value; const mStr = document.getElementById('gameMinute').value; const gameTime = new Date(); gameTime.setHours(parseInt(hStr), parseInt(mStr), 0, 0);
-        if (gameTime < now && (now - gameTime) > 300000) { alert(t("timePastError")); return; } // תרגום שגיאת זמן
+        if (gameTime < now && (now - gameTime) > 300000) { alert(t("timePastError")); return; }
         sqlStartTime = `${gameTime.getFullYear()}-${String(gameTime.getMonth() + 1).padStart(2, '0')}-${String(gameTime.getDate()).padStart(2, '0')} ${hStr}:${mStr}:00`;
     }
     
     try {
         const submitBtn = document.querySelector('.submit-btn');
-        submitBtn.innerText = t("creatingGame"); submitBtn.disabled = true; // תרגום "פותח משחק"
+        submitBtn.innerText = t("creatingGame"); submitBtn.disabled = true; 
         const creatorId = parseInt(myUserId);
         const response = await fetch('/api/games', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courtId: parseInt(courtId), creatorPlayerId: creatorId, missingPlayers: parseInt(missingPlayers), startTime: sqlStartTime }) });
         

@@ -63,9 +63,9 @@ function setLanguage(lang) {
     
     const langBtn = document.getElementById('langToggleBtn');
     if (langBtn) {
-        // אם השפה הנוכחית היא עברית, הכפתור יציע לעבור לאנגלית. אם באנגלית, יציע לעבור לעברית.
         langBtn.innerText = (lang === 'he') ? 'English (EN)' : 'Hebrew (HE)';
     }
+
     document.querySelectorAll('[data-i18n]').forEach(el => { 
         el.innerText = t(el.getAttribute('data-i18n')); 
     });
@@ -78,7 +78,11 @@ function setLanguage(lang) {
         if (welcomeEl) welcomeEl.innerText = t("welcome").replace('{name}', window.myUsername);
     }
     
-    // רענון מרכיבים דינמיים של הליבה כדי לתרגם אותם בלייב
+    // מעדכן את המפה לשפה הנכונה מיד עם החלפת השפה!
+    if (window.updateMapLanguage) {
+        window.updateMapLanguage(lang);
+    }
+    
     if (typeof renderGamesList === 'function' && typeof allGames !== 'undefined') renderGamesList();
     if (typeof populateDropdown === 'function') {
         const searchBox = document.getElementById('searchBox');
