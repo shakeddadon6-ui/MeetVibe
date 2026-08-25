@@ -178,12 +178,13 @@
         
         <div class="form-container">
             <h3>➕ פתח משחק חדש</h3>
-            <form id="newGameForm">
+            <!-- העפנו את ה-form המקורי כדי שלא יחסום אותנו -->
+            <div id="newGameForm">
                 <input type="text" id="searchBox" class="app-input" placeholder="🔍 הקלד שם מגרש לחיפוש מהיר...">
-                <select id="courtId" class="app-input" required><option value="">מחפש מיקום... 📍</option></select>
+                <select id="courtId" class="app-input"><option value="">מחפש מיקום... 📍</option></select>
                 <div id="selectedAddressDisplay"></div>
                 
-                <input type="number" id="missingPlayers" class="app-input" placeholder="כמה שחקנים חסרים?" min="1" max="10" required>
+                <input type="number" id="missingPlayers" class="app-input" placeholder="כמה שחקנים חסרים?" min="1" max="10">
                 
                 <div class="time-toggle-container">
                     <button type="button" id="btnTimeNow" class="time-btn active" onclick="setTimeMode('now')">⚡ עכשיו</button>
@@ -192,8 +193,9 @@
                 <div class="time-picker-wrapper" id="timePickerWrapper" style="display: none;">
                     <select id="gameHour"></select><span class="time-picker-separator">:</span><select id="gameMinute"></select>
                 </div>
-                <button type="submit" class="submit-btn">פתח משחק!</button>
-            </form>
+                <!-- הכפתור עכשיו קורא ישירות לפונקציה שלנו -->
+                <button type="button" class="submit-btn" onclick="createNewGame()">פתח משחק!</button>
+            </div>
         </div>
 
         <h2 style="color: #2c3e50;">🔥 משחקים שקורים עכשיו:</h2>
@@ -360,30 +362,24 @@
         const footballIcon = L.divIcon({ html: '<div style="font-size: 26px;">⚽</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
         
         let allCourts = []; let allGames = []; let userHasLocation = false; let selectedSportFilter = 'all'; 
-        let heatLayer = null; // המשתנה שמחזיק את שכבת החום
+        let heatLayer = null; 
 
         // ==========================================
         // מפת חום (Heatmap)
         // ==========================================
         function updateHeatmap() {
-            if (heatLayer) { map.removeLayer(heatLayer); } // מנקה את החום הישן
+            if (heatLayer) { map.removeLayer(heatLayer); } 
 
             const heatPoints = [];
             
-            // עוברים על כל המשחקים הפעילים כרגע
             allGames.forEach(game => {
                 const court = allCourts.find(c => c.CourtName === game.CourtName);
-                
-                // אם המגרש קיים ועומד בסינון המרחק שלנו
                 if (court && (!userHasLocation || (court.distanceKm !== undefined && court.distanceKm <= 10))) {
-                    // מוסיפים נקודת חום: [קו רוחב, קו אורך, עוצמה]
-                    // העוצמה משתנה לפי כמות השחקנים החסרים
                     const intensity = Math.min(game.MissingPlayers * 0.2, 1.0); 
                     heatPoints.push([court.Latitude, court.Longitude, intensity]);
                 }
             });
 
-            // מציירים את נקודות החום על המפה
             if (heatPoints.length > 0) {
                 heatLayer = L.heatLayer(heatPoints, { 
                     radius: 35, 
@@ -394,7 +390,7 @@
             }
         }
 
-        // סינון מגרשים על סמך סוג ספורט ומרחק
+        // סינון מגרשים
         function setSportFilter(sport) {
             selectedSportFilter = sport;
             document.getElementById('btnAll').className = `sport-btn ${sport === 'all' ? 'active' : ''}`;
@@ -403,9 +399,7 @@
             
             allCourts.forEach(court => {
                 const matchSport = (selectedSportFilter === 'all' || court.SportType === selectedSportFilter);
-                // מסנן: רק אם המשתמש ללא מיקום, או אם יש מיקום אז רק מה שקטן מ-10 ק"מ
                 const isCloseEnough = !userHasLocation || (court.distanceKm !== undefined && court.distanceKm <= 10);
-                
                 const shouldShow = matchSport && isCloseEnough;
                 
                 if (shouldShow) { 
@@ -419,7 +413,7 @@
             renderGamesList();
         }
 
-        // חישוב מרחק מתמטי (קילומטרים)
+        // חישוב מרחק 
         function calcDistanceKm(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -450,14 +444,11 @@
                         map.setView([myLat, myLon], 13);
                         L.marker([myLat, myLon]).addTo(map).bindPopup('📍 אתה כאן!');
                         
-                        // חישוב המרחק של כל המגרשים אליי
                         allCourts.forEach(c => c.distanceKm = calcDistanceKm(myLat, myLon, c.Latitude, c.Longitude));
                         allCourts.sort((a, b) => a.distanceKm - b.distanceKm); 
                         
-                        // רק אחרי שהמרחקים חושבו, מפעילים את הסינון והציור
                         setSportFilter('all');
                     }, () => {
-                        // המשתמש סירב למיקום
                         setSportFilter('all');
                     });
                 } else { 
@@ -466,7 +457,7 @@
             } catch (err) { console.error("שגיאה בטעינת המגרשים:", err); }
         }
 
-        // הכנסת המגרשים לרשימת הבחירה (בטופס משחק חדש)
+        // הכנסת המגרשים לרשימה
         function populateDropdown(searchTerm) {
             const courtSelect = document.getElementById('courtId'); 
             courtSelect.innerHTML = '<option value="">-- בחר מגרש --</option>'; 
@@ -474,9 +465,7 @@
             allCourts.filter(c => {
                 const matchName = c.CourtName.includes(searchTerm);
                 const matchSport = (selectedSportFilter === 'all' || c.SportType === selectedSportFilter);
-                // מסנן גם את הרשימה לפי מרחק - רק עד 10 ק"מ!
                 const isCloseEnough = !userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10);
-                
                 return matchName && matchSport && isCloseEnough;
             }).slice(0, 50).forEach(court => {
                 const option = document.createElement('option'); option.value = court.CourtID;
@@ -492,8 +481,7 @@
         }
 
         function renderGamesList() {
-            // ---> מפעילים את העדכון של מפת החום בכל פעם שהרשימה מתרעננת <---
-            updateHeatmap();
+            updateHeatmap(); // מצייר מחדש את מפת החום
             
             const container = document.getElementById('gamesList'); container.innerHTML = ''; 
             const filtered = allGames.filter(g => { 
@@ -548,16 +536,20 @@
         }
         function handleChatEnter(e) { if (e.key === 'Enter') sendChatMessage(); }
 
- // שליחת טופס פתיחת משחק - מעודכן עם חיווי שגיאות למסך!
-        document.getElementById('newGameForm').addEventListener('submit', async function(event) {
-            event.preventDefault(); 
-            
+        // ==========================================
+        // יצירת משחק חדש - חכם ויציב!
+        // ==========================================
+        async function createNewGame() {
             const courtId = document.getElementById('courtId').value; 
             const missingPlayers = document.getElementById('missingPlayers').value; 
             
             // בדיקה שבאמת בחרת מגרש מהרשימה
             if (!courtId) {
                 alert("📍 היי! שכחת לבחור מגרש מהרשימה.");
+                return;
+            }
+            if (!missingPlayers || missingPlayers < 1) {
+                alert("👥 היי! אנא הזן כמה שחקנים חסרים (לפחות 1).");
                 return;
             }
 
@@ -576,10 +568,13 @@
                 submitBtn.innerText = "פותח משחק... ⏳";
                 submitBtn.disabled = true;
 
+                // מוודאים ש-myUserId נשלח כמספר (Int)
+                const creatorId = parseInt(myUserId);
+
                 const response = await fetch('/api/games', { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ courtId: parseInt(courtId), creatorPlayerId: myUserId, missingPlayers: parseInt(missingPlayers), startTime: sqlStartTime }) 
+                    body: JSON.stringify({ courtId: parseInt(courtId), creatorPlayerId: creatorId, missingPlayers: parseInt(missingPlayers), startTime: sqlStartTime }) 
                 });
                 
                 if(response.ok) { 
@@ -587,7 +582,6 @@
                     loadGames(); 
                     document.getElementById('whatsappModal').style.display = 'flex'; 
                 } else {
-                    // כאן אנחנו תופסים את השגיאה אם יש בעיה בשרת!
                     const data = await response.json();
                     alert("❌ השרת דחה את הבקשה: " + (data.error || "תקלה לא ידועה"));
                 }
@@ -602,7 +596,7 @@
                 document.querySelector('.submit-btn').innerText = "פתח משחק!";
                 document.querySelector('.submit-btn').disabled = false;
             }
-        });
+        }
 
         function closeModal() { document.getElementById('whatsappModal').style.display = 'none'; }
     </script>
