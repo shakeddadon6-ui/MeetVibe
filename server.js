@@ -40,7 +40,7 @@ async function initDB() {
             END
         `);
 
-        // 2. טבלת מגרשים (נוספה כדי למנוע את השגיאה!)
+        // 2. טבלת מגרשים 
         await sql.query(`
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Courts' and xtype='U')
             BEGIN
@@ -54,9 +54,10 @@ async function initDB() {
             END
         `);
 
-        // 3. טבלת משחקים (נוספה כדי למנוע את השגיאה!)
+        // 3. טבלת משחקים (ההערה תוקנה לסימון של SQL כדי למנוע קריסה!)
         await sql.query(`
-            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Courts' and xtype='U') // ליתר ביטחון
+            -- ליתר ביטחון
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Courts' and xtype='U') 
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Games' and xtype='U')
             BEGIN
                 CREATE TABLE Games (
@@ -135,7 +136,6 @@ app.post('/api/reset-password', async (req, res) => {
 });
 
 // מגרשים
-// מגרשים
 app.get('/api/courts', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
@@ -147,14 +147,17 @@ app.get('/api/courts', async (req, res) => {
     }
 });
 
-// משחקים
+// משחקים - הנתיב תוקן כדי להציג את השגיאה האמיתית!
 app.post('/api/games', async (req, res) => {
     try {
         const { courtId, creatorPlayerId, missingPlayers, startTime } = req.body;
         await sql.connect(sqlConfig);
         await sql.query(`INSERT INTO Games (CourtID, CreatorPlayerID, StartTime, MissingPlayers, GameStatus) VALUES (${courtId}, ${creatorPlayerId}, '${startTime}', ${missingPlayers}, 'Open');`);
         res.status(201).json({ success: true });
-    } catch (err) { res.status(500).json({ error: "תקלה" }); }
+    } catch (err) { 
+        console.error("❌ שגיאה בפתיחת משחק:", err);
+        res.status(500).json({ error: err.message }); 
+    }
 });
 
 app.get('/api/games', async (req, res) => {
