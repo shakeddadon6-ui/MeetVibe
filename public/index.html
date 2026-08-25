@@ -129,7 +129,7 @@
     <script>
         // ==========================================
         // הניתוב החכם של ההתחברות (Smart Routing)
-        // משתנים גלובליים שגם auth.js משתמש בהם
+        // משתנים גלובליים שגם auth.js ו-chat.js משתמשים בהם
         // ==========================================
         let myUserId = localStorage.getItem('sportMatchUserId');
         let myUsername = localStorage.getItem('sportMatchUser');
@@ -154,7 +154,8 @@
         // ==========================================
         // מנגנון הליבה: מפה, מיקום חכם וסינון
         // ==========================================
-        let currentTimeMode = 'now'; let activeChatGameId = null; let chatPollingInterval = null;
+        let currentTimeMode = 'now'; 
+        
         function setTimeMode(mode) {
             currentTimeMode = mode;
             if (mode === 'now') {
@@ -320,33 +321,6 @@
             } catch (error) { alert('שגיאת תקשורת'); }
         }
 
-        // צ'אט מגרש
-        function openChat(gameId, courtName) {
-            activeChatGameId = gameId; document.getElementById('chatTitle').innerText = `💬 צ'אט: ${courtName}`; document.getElementById('chatModal').style.display = 'flex';
-            fetchChatMessages(); chatPollingInterval = setInterval(fetchChatMessages, 2000);
-        }
-        function closeChat() { document.getElementById('chatModal').style.display = 'none'; clearInterval(chatPollingInterval); activeChatGameId = null; }
-
-        async function fetchChatMessages() {
-            if (!activeChatGameId) return;
-            try {
-                const response = await fetch(`/api/games/${activeChatGameId}/chat`); const messages = await response.json();
-                const chatBox = document.getElementById('chatMessages'); chatBox.innerHTML = ''; 
-                if (messages.length === 0) { chatBox.innerHTML = '<p style="text-align:center; color:gray; margin-top:20px;">אין הודעות. תגיד שלום! 👋</p>'; return; }
-                messages.forEach(msg => {
-                    const isMe = msg.SenderName === myUsername; const msgDiv = document.createElement('div'); msgDiv.className = `message ${isMe ? 'msg-me' : 'msg-other'}`;
-                    msgDiv.innerHTML = `<span class="msg-sender">${isMe ? 'אני' : msg.SenderName}</span>${msg.MessageText}<span class="msg-time">${msg.SendTime.substring(0, 5)}</span>`; chatBox.appendChild(msgDiv);
-                });
-                chatBox.scrollTop = chatBox.scrollHeight;
-            } catch (error) {}
-        }
-        
-        async function sendChatMessage() {
-            const text = document.getElementById('chatInput').value.trim(); if (!text || !activeChatGameId) return; document.getElementById('chatInput').value = ''; 
-            try { await fetch(`/api/games/${activeChatGameId}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senderName: myUsername, messageText: text }) }); fetchChatMessages(); } catch (error) {}
-        }
-        function handleChatEnter(e) { if (e.key === 'Enter') sendChatMessage(); }
-
         // ==========================================
         // יצירת משחק חדש - חכם ויציב!
         // ==========================================
@@ -414,6 +388,9 @@
 
     <!-- ייבוא קובץ ניהול המשתמשים החיצוני שלנו -->
     <script src="js/auth.js"></script>
+    
+    <!-- ייבוא קובץ הצ'אט החדש! -->
+    <script src="js/chat.js"></script>
 
 </body>
 </html>
