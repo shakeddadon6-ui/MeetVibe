@@ -40,7 +40,37 @@ async function initDB() {
             END
         `);
 
-        // 2. טבלת הודעות צ'אט
+        // 2. טבלת מגרשים (נוספה כדי למנוע את השגיאה!)
+        await sql.query(`
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Courts' and xtype='U')
+            BEGIN
+                CREATE TABLE Courts (
+                    CourtID INT IDENTITY(1,1) PRIMARY KEY,
+                    CourtName NVARCHAR(200),
+                    Latitude FLOAT,
+                    Longitude FLOAT,
+                    SportType NVARCHAR(50)
+                )
+            END
+        `);
+
+        // 3. טבלת משחקים (נוספה כדי למנוע את השגיאה!)
+        await sql.query(`
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Courts' and xtype='U') // ליתר ביטחון
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Games' and xtype='U')
+            BEGIN
+                CREATE TABLE Games (
+                    GameID INT IDENTITY(1,1) PRIMARY KEY,
+                    CourtID INT,
+                    CreatorPlayerID INT,
+                    StartTime DATETIME,
+                    MissingPlayers INT,
+                    GameStatus NVARCHAR(20) DEFAULT 'Open'
+                )
+            END
+        `);
+
+        // 4. טבלת הודעות צ'אט
         await sql.query(`
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='GameMessages' and xtype='U')
             CREATE TABLE GameMessages (
