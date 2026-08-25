@@ -103,4 +103,4 @@ async function seedCourts() {
     }
 }
 
-seedCourts();מם
+seedCourts();

@@ -135,13 +135,16 @@ app.post('/api/reset-password', async (req, res) => {
 });
 
 // מגרשים
+// מגרשים
 app.get('/api/courts', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
         const result = await sql.query(`SELECT CourtID, CourtName, Latitude, Longitude, SportType FROM Courts`);
-        const hebrewRegex = /[\u0590-\u05FF]/; const arabicRegex = /[\u0600-\u06FF]/; 
-        res.json(result.recordset.filter(court => hebrewRegex.test(court.CourtName) && !arabicRegex.test(court.CourtName)));
-    } catch (err) { res.status(500).json({ error: "תקלה" }); }
+        res.json(result.recordset);
+    } catch (err) { 
+        console.error("Courts API Error:", err);
+        res.status(500).json({ error: "תקלה" }); 
+    }
 });
 
 // משחקים

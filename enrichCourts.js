@@ -1,10 +1,10 @@
 const sql = require('mssql');
 
 const sqlConfig = {
-    server: 'localhost',
+    server: 'SportMatchDB.mssql.somee.com', 
     database: 'SportMatchDB',
-    user: 'SportApp',
-    password: 'SportPassword123!',
+    user: 'shakedadon_SQLLogin_1',
+    password: 'vh6n15djcv',
     options: {
         encrypt: false,
         trustServerCertificate: true
