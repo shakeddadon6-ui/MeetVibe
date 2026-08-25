@@ -19,13 +19,20 @@ const translations = {
         nightMode: "🌙 לילה", dayMode: "☀️ יום", chatTitle: "צ'אט", chatPlaceholder: "הקלד הודעה...",
         gameCreatedTitle: "🎉 המשחק נפתח!", whatsappBtn: "💬 שלח בוואטסאפ", closeBtn: "סגור",
         
-        // התראות וטקסטים דינמיים של המערכת
+        // התראות וטקסטים דינמיים
         selectCourtAlert: "📍 היי! שכחת לבחור מגרש מהרשימה.", missingPlayersAlert: "👥 היי! אנא הזן כמה שחקנים חסרים.",
         joinedSuccess: "הצטרפת בהצלחה! מעביר אותך לצ'אט...", timePastError: "❌ שגיאה: בחרת שעה שכבר עברה.",
         creatingGame: "פותח משחק... ⏳", serverError: "❌ השרת דחה את הבקשה: ", netError: "❌ תקלת תקשורת מול השרת.",
         youAreHere: "📍 אתה כאן!", distanceKm: 'ק"מ', awayFromYou: 'ק"מ ממך', happeningNow: '🟢 קורה עכשיו (ב-{time})', futureGame: '🕰️ עתידי להיום (ב-{time})',
         chatMe: "אני", chatEmpty: "אין הודעות. תגיד שלום! 👋",
-        authSuccess: "נרשמת בהצלחה! בבקשה התחבר.", loginError: "תקלה בהתחברות."
+        
+        // התראות התחברות (התוספת החדשה!)
+        authSuccess: "נרשמת בהצלחה! בבקשה התחבר.", loginError: "תקלה בהתחברות.",
+        already_exists: "המספר כבר רשום במערכת. מעביר אותך להתחברות...",
+        not_found: "המספר לא קיים במערכת. מעביר אותך להרשמה...",
+        wrong_password: "❌ סיסמה שגויה.",
+        resetSuccess: "✅ הסיסמה שונתה בהצלחה!",
+        resetNotFound: "❌ המספר הזה לא קיים במערכת."
     },
     en: {
         appTitle: "SportMatch", loginTab: "Login", registerTab: "Register",
@@ -47,7 +54,14 @@ const translations = {
         creatingGame: "Opening game... ⏳", serverError: "❌ Server error: ", netError: "❌ Network error.",
         youAreHere: "📍 You are here!", distanceKm: 'km', awayFromYou: 'km away', happeningNow: '🟢 Happening now (at {time})', futureGame: '🕰️ Future today (at {time})',
         chatMe: "Me", chatEmpty: "No messages yet. Say hi! 👋",
-        authSuccess: "Registered successfully! Please login.", loginError: "Login error."
+        
+        // Auth alerts (The new addition!)
+        authSuccess: "Registered successfully! Please login.", loginError: "Login error.",
+        already_exists: "Phone number already registered. Redirecting to login...",
+        not_found: "Phone number not found. Redirecting to registration...",
+        wrong_password: "❌ Wrong password.",
+        resetSuccess: "✅ Password reset successfully!",
+        resetNotFound: "❌ This phone number does not exist."
     }
 };
 
@@ -73,7 +87,6 @@ function setLanguage(lang) {
         el.placeholder = t(el.getAttribute('data-i18n-placeholder')); 
     });
 
-    // תיקון: משיכת השם ישירות מהזיכרון המקומי
     const savedUsername = localStorage.getItem('sportMatchUser');
     if (savedUsername) {
         const welcomeEl = document.getElementById('welcomeMessage');

@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ auth.js - ניהול משתמשים והתחברות מתורגם
+// קובץ auth.js - ניהול משתמשים והתחברות מתורגם 100%
 // ==========================================
 
 function switchAuthTab(tab) {
@@ -36,17 +36,18 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         });
         const data = await res.json();
         if(res.ok) { 
-            alert(t("authSuccess")); // תרגום!
+            alert(t("authSuccess")); 
             switchAuthTab('login'); 
             document.getElementById('loginPhone').value = phone; 
         } else { 
-            alert(data.error); 
+            // שימוש במילון לפי קוד השגיאה
+            alert(data.code ? t(data.code) : data.error); 
             if(data.code === 'already_exists') { 
                 switchAuthTab('login'); 
                 document.getElementById('loginPhone').value = phone; 
             } 
         }
-    } catch(err) { alert(t("netError")); } // תרגום!
+    } catch(err) { alert(t("netError")); }
 });
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -65,13 +66,14 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             myUsername = data.userName; 
             showMainApp(); 
         } else { 
-            alert(data.error); 
+            // שימוש במילון לפי קוד השגיאה
+            alert(data.code ? t(data.code) : data.error); 
             if(data.code === 'not_found') { 
                 switchAuthTab('register'); 
                 document.getElementById('regPhone').value = phone; 
             } 
         }
-    } catch(err) { alert(t("loginError")); } // תרגום!
+    } catch(err) { alert(t("loginError")); }
 });
 
 document.getElementById('forgotForm').addEventListener('submit', async (e) => {
@@ -83,12 +85,15 @@ document.getElementById('forgotForm').addEventListener('submit', async (e) => {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, newPassword })
         });
         const data = await res.json();
-        alert(data.message || data.error);
+        
         if(res.ok) {
+            alert(t("resetSuccess")); // תרגום איפוס בהצלחה
             switchAuthTab('login');
             document.getElementById('loginPhone').value = phone;
+        } else {
+            alert(t("resetNotFound")); // תרגום מספר לא קיים
         }
-    } catch(err) { alert(t("netError")); } // תרגום!
+    } catch(err) { alert(t("netError")); }
 });
 
 function logout() { 
