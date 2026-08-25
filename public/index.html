@@ -12,115 +12,112 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-    
     <link rel="stylesheet" href="css/style.css">
+    
+    <!-- עיצוב לכפתור השפה החדש -->
+    <style> .lang-btn { background: #27ae60; color: white; margin-right: 5px; margin-left: 5px;} </style>
 </head>
 <body>
 
-    <!-- ========================================== -->
-    <!-- מסך הרשמה, התחברות ואיפוס סיסמה -->
-    <!-- ========================================== -->
     <div id="authScreen" class="auth-overlay">
         <div class="auth-container">
-            <h1>🗺️ SportMatch</h1>
-            
+            <h1 data-i18n="appTitle">🗺️ SportMatch</h1>
             <div class="auth-tabs" id="authTabs">
-                <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')">התחברות</button>
-                <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')">הרשמה</button>
+                <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')" data-i18n="loginTab">התחברות</button>
+                <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')" data-i18n="registerTab">הרשמה</button>
             </div>
             
             <form id="loginForm" class="auth-form">
-                <input type="tel" id="loginPhone" placeholder="מספר טלפון" required>
-                <input type="password" id="loginPassword" placeholder="סיסמה" required>
-                <button type="submit">היכנס למגרש</button>
-                <a class="forgot-pass-link" onclick="switchAuthTab('forgot')">שכחתי סיסמה 🤔</a>
+                <input type="tel" id="loginPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
+                <input type="password" id="loginPassword" placeholder="סיסמה" data-i18n-placeholder="passwordPlaceholder" required>
+                <button type="submit" data-i18n="loginBtn">היכנס למגרש</button>
+                <a class="forgot-pass-link" onclick="switchAuthTab('forgot')" data-i18n="forgotPassword">שכחתי סיסמה 🤔</a>
             </form>
             
             <form id="registerForm" class="auth-form" style="display: none;">
-                <input type="text" id="regName" placeholder="שם מלא" required>
-                <input type="tel" id="regPhone" placeholder="מספר טלפון" required>
-                <input type="password" id="regPassword" placeholder="בחר סיסמה" required>
-                <button type="submit">צור משתמש חדש</button>
+                <input type="text" id="regName" placeholder="שם מלא" data-i18n-placeholder="namePlaceholder" required>
+                <input type="tel" id="regPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
+                <input type="password" id="regPassword" placeholder="בחר סיסמה" data-i18n-placeholder="choosePasswordPlaceholder" required>
+                <button type="submit" data-i18n="registerBtn">צור משתמש חדש</button>
             </form>
 
             <form id="forgotForm" class="auth-form" style="display: none;">
-                <h3 style="margin-top: 0; color: #e74c3c;">איפוס סיסמה</h3>
-                <p style="font-size: 0.9em; color: #7f8c8d;">הזן את המספר שלך כדי לבחור סיסמה חדשה.</p>
-                <input type="tel" id="forgotPhone" placeholder="מספר טלפון" required>
-                <input type="password" id="forgotNewPassword" placeholder="סיסמה חדשה" required>
-                <button type="submit" style="background: #e74c3c;">עדכן סיסמה</button>
-                <a class="forgot-pass-link" onclick="switchAuthTab('login')">חזור להתחברות</a>
+                <h3 style="margin-top: 0; color: #e74c3c;" data-i18n="resetTitle">איפוס סיסמה</h3>
+                <input type="tel" id="forgotPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
+                <input type="password" id="forgotNewPassword" placeholder="סיסמה חדשה" data-i18n-placeholder="newPasswordPlaceholder" required>
+                <button type="submit" style="background: #e74c3c;" data-i18n="updatePasswordBtn">עדכן סיסמה</button>
+                <a class="forgot-pass-link" onclick="switchAuthTab('login')" data-i18n="backToLogin">חזור להתחברות</a>
             </form>
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- האפליקציה המרכזית -->
-    <!-- ========================================== -->
     <div id="mainApp">
         <div class="header-container">
-            <button id="darkModeToggle" class="top-btn" onclick="toggleDarkMode()">🌙 לילה</button>
-            <h1 class="main-title">SportMatch</h1>
-            <button class="top-btn logout-btn" onclick="logout()">🚪 התנתק</button>
+            <button id="darkModeToggle" class="top-btn" onclick="toggleDarkMode()" data-i18n="nightMode">🌙 לילה</button>
+            <!-- הכפתור החדש! -->
+            <button id="langToggleBtn" class="top-btn lang-btn" onclick="toggleLanguage()">🇬🇧 English</button>
+            
+            <h1 class="main-title" data-i18n="appTitle">SportMatch</h1>
+            <button class="top-btn logout-btn" onclick="logout()" data-i18n="logout">🚪 התנתק</button>
         </div>
 
         <div id="welcomeMessage" class="welcome-bar"></div>
         
         <div class="filter-container">
-            <button id="btnAll" class="sport-btn active" onclick="setSportFilter('all')">🌍 הכל</button>
-            <button id="btnBasketball" class="sport-btn" onclick="setSportFilter('Basketball')">🏀 כדורסל</button>
-            <button id="btnFootball" class="sport-btn" onclick="setSportFilter('Football')">⚽ כדורגל</button>
+            <button id="btnAll" class="sport-btn active" onclick="setSportFilter('all')" data-i18n="filterAll">🌍 הכל</button>
+            <button id="btnBasketball" class="sport-btn" onclick="setSportFilter('Basketball')" data-i18n="filterBasketball">🏀 כדורסל</button>
+            <button id="btnFootball" class="sport-btn" onclick="setSportFilter('Football')" data-i18n="filterFootball">⚽ כדורגל</button>
         </div>
 
         <div id="map"></div>
         
         <div class="form-container">
-            <h3>➕ פתח משחק חדש</h3>
+            <h3 data-i18n="formTitle">➕ פתח משחק חדש</h3>
             <div id="newGameForm">
-                <input type="text" id="searchBox" class="app-input" placeholder="🔍 הקלד שם מגרש לחיפוש מהיר...">
-                <select id="courtId" class="app-input"><option value="">מחפש מיקום... 📍</option></select>
+                <input type="text" id="searchBox" class="app-input" placeholder="🔍 הקלד שם מגרש לחיפוש מהיר..." data-i18n-placeholder="searchPlaceholder">
+                <select id="courtId" class="app-input"><option value="" data-i18n="searchingLocation">מחפש מיקום... 📍</option></select>
                 <div id="selectedAddressDisplay"></div>
                 
-                <input type="number" id="missingPlayers" class="app-input" placeholder="כמה שחקנים חסרים?" min="1" max="10">
+                <input type="number" id="missingPlayers" class="app-input" placeholder="כמה שחקנים חסרים?" data-i18n-placeholder="missingPlayersPlaceholder" min="1" max="10">
                 
                 <div class="time-toggle-container">
-                    <button type="button" id="btnTimeNow" class="time-btn active" onclick="setTimeMode('now')">⚡ עכשיו</button>
-                    <button type="button" id="btnTimeFuture" class="time-btn" onclick="setTimeMode('future')">🕰️ עתידי</button>
+                    <button type="button" id="btnTimeNow" class="time-btn active" onclick="setTimeMode('now')" data-i18n="btnNow">⚡ עכשיו</button>
+                    <button type="button" id="btnTimeFuture" class="time-btn" onclick="setTimeMode('future')" data-i18n="btnFuture">🕰️ עתידי</button>
                 </div>
                 <div class="time-picker-wrapper" id="timePickerWrapper" style="display: none;">
                     <select id="gameHour"></select><span class="time-picker-separator">:</span><select id="gameMinute"></select>
                 </div>
-                <button type="button" class="submit-btn" onclick="createNewGame()">פתח משחק!</button>
+                <button type="button" class="submit-btn" onclick="createNewGame()" data-i18n="submitGameBtn">פתח משחק!</button>
             </div>
         </div>
 
-        <h2 style="color: #2c3e50;">🔥 משחקים שקורים עכשיו:</h2>
+        <h2 style="color: #2c3e50;" data-i18n="activeGamesTitle">🔥 משחקים שקורים עכשיו:</h2>
         <div id="gamesList" class="games-container"></div>
     </div>
 
-    <!-- מודלים נלווים -->
     <div id="chatModal" class="modal-overlay">
         <div class="chat-modal">
             <div class="chat-header">
-                <span id="chatTitle">💬 צ'אט</span>
+                <span id="chatTitle" data-i18n="chatTitle">💬 צ'אט</span>
                 <button onclick="closeChat()" style="background:none; border:none; color:white; font-size:1.5em; cursor:pointer;">&times;</button>
             </div>
             <div id="chatMessages" class="chat-messages"></div>
             <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="הקלד הודעה..." onkeypress="handleChatEnter(event)">
+                <input type="text" id="chatInput" placeholder="הקלד הודעה..." data-i18n-placeholder="chatPlaceholder" onkeypress="handleChatEnter(event)">
                 <button onclick="sendChatMessage()">➤</button>
             </div>
         </div>
     </div>
     <div id="whatsappModal" class="modal-overlay">
         <div class="modal-content">
-            <h2 style="margin-top: 0; color: #333;">🎉 המשחק נפתח!</h2>
-            <button id="waShareBtn" class="wa-btn">💬 שלח בוואטסאפ</button>
-            <button onclick="closeModal()" class="close-btn" style="background:none; border:none; color:gray; text-decoration:underline; font-size: 1.1em; cursor:pointer; margin-top:10px;">סגור</button>
+            <h2 style="margin-top: 0; color: #333;" data-i18n="gameCreatedTitle">🎉 המשחק נפתח!</h2>
+            <button id="waShareBtn" class="wa-btn" data-i18n="whatsappBtn">💬 שלח בוואטסאפ</button>
+            <button onclick="closeModal()" class="close-btn" style="background:none; border:none; color:gray; text-decoration:underline; font-size: 1.1em; cursor:pointer; margin-top:10px;" data-i18n="closeBtn">סגור</button>
         </div>
     </div>
 
-    <!-- טעינת הסקריפטים שלנו לפי סדר -->
+    <!-- טעינת הסקריפטים שלנו לפי סדר (חובה שהמילון יהיה ראשון!) -->
+    <script src="js/lang.js"></script>
     <script src="js/app.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/chat.js"></script>
