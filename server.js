@@ -134,11 +134,12 @@ app.post('/api/reset-password', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה באיפוס סיסמה." }); }
 });
 
-// מגרשים
+// מגרשים - תוקן כדי לשלוף גם את השם באנגלית!
 app.get('/api/courts', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
-        const result = await sql.query(`SELECT CourtID, CourtName, Latitude, Longitude, SportType FROM Courts`);
+        // שינוי: הוספנו את CourtNameEn לשליפה
+        const result = await sql.query(`SELECT CourtID, CourtName, CourtNameEn, Latitude, Longitude, SportType FROM Courts`);
         res.json(result.recordset);
     } catch (err) { 
         console.error("Courts API Error:", err);
@@ -146,7 +147,7 @@ app.get('/api/courts', async (req, res) => {
     }
 });
 
-// משחקים - הנתיב תוקן כדי להציג את השגיאה האמיתית!
+// משחקים
 app.post('/api/games', async (req, res) => {
     try {
         const { courtId, creatorPlayerId, missingPlayers, startTime } = req.body;
@@ -162,8 +163,9 @@ app.post('/api/games', async (req, res) => {
 app.get('/api/games', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
+        // שינוי: הוספנו את Courts.CourtNameEn לשליפה כדי שכרטיסיות המשחק יהיו באנגלית
         const result = await sql.query(`
-            SELECT Games.GameID, Players.FullName AS CreatorName, Courts.CourtName, CONVERT(varchar, Games.StartTime, 120) AS StartTimeStr, Games.MissingPlayers, Games.GameStatus
+            SELECT Games.GameID, Players.FullName AS CreatorName, Courts.CourtName, Courts.CourtNameEn, CONVERT(varchar, Games.StartTime, 120) AS StartTimeStr, Games.MissingPlayers, Games.GameStatus
             FROM Games JOIN Players ON Games.CreatorPlayerID = Players.PlayerID JOIN Courts ON Games.CourtID = Courts.CourtID
             WHERE Games.GameStatus = 'Open' AND Games.StartTime >= DATEADD(hour, -2, GETDATE());
         `);
