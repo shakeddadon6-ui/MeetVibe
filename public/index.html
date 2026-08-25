@@ -548,22 +548,62 @@
         }
         function handleChatEnter(e) { if (e.key === 'Enter') sendChatMessage(); }
 
-        // שליחת טופס פתיחת משחק
+ // שליחת טופס פתיחת משחק - מעודכן עם חיווי שגיאות למסך!
         document.getElementById('newGameForm').addEventListener('submit', async function(event) {
             event.preventDefault(); 
-            const courtId = document.getElementById('courtId').value; const missingPlayers = document.getElementById('missingPlayers').value; let sqlStartTime; const now = new Date();
+            
+            const courtId = document.getElementById('courtId').value; 
+            const missingPlayers = document.getElementById('missingPlayers').value; 
+            
+            // בדיקה שבאמת בחרת מגרש מהרשימה
+            if (!courtId) {
+                alert("📍 היי! שכחת לבחור מגרש מהרשימה.");
+                return;
+            }
+
+            let sqlStartTime; const now = new Date();
             if (currentTimeMode === 'now') {
                 sqlStartTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
             } else {
                 const hStr = document.getElementById('gameHour').value; const mStr = document.getElementById('gameMinute').value; const gameTime = new Date(); gameTime.setHours(parseInt(hStr), parseInt(mStr), 0, 0);
-                if (gameTime < now && (now - gameTime) > 300000) { alert("❌ שגיאה: שעה לא הגיונית (כבר עברה)."); return; }
+                if (gameTime < now && (now - gameTime) > 300000) { alert("❌ שגיאה: בחרת שעה שכבר עברה."); return; }
                 sqlStartTime = `${gameTime.getFullYear()}-${String(gameTime.getMonth() + 1).padStart(2, '0')}-${String(gameTime.getDate()).padStart(2, '0')} ${hStr}:${mStr}:00`;
             }
+            
             try {
-                const response = await fetch('/api/games', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courtId: parseInt(courtId), creatorPlayerId: myUserId, missingPlayers: parseInt(missingPlayers), startTime: sqlStartTime }) });
-                if(response.ok) { document.getElementById('missingPlayers').value = ''; loadGames(); document.getElementById('whatsappModal').style.display = 'flex'; }
-            } catch (error) {}
+                // משנים את הטקסט של הכפתור כדי שתדע שהוא חושב
+                const submitBtn = document.querySelector('.submit-btn');
+                submitBtn.innerText = "פותח משחק... ⏳";
+                submitBtn.disabled = true;
+
+                const response = await fetch('/api/games', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ courtId: parseInt(courtId), creatorPlayerId: myUserId, missingPlayers: parseInt(missingPlayers), startTime: sqlStartTime }) 
+                });
+                
+                if(response.ok) { 
+                    document.getElementById('missingPlayers').value = ''; 
+                    loadGames(); 
+                    document.getElementById('whatsappModal').style.display = 'flex'; 
+                } else {
+                    // כאן אנחנו תופסים את השגיאה אם יש בעיה בשרת!
+                    const data = await response.json();
+                    alert("❌ השרת דחה את הבקשה: " + (data.error || "תקלה לא ידועה"));
+                }
+                
+                // מחזירים את הכפתור למצב רגיל
+                submitBtn.innerText = "פתח משחק!";
+                submitBtn.disabled = false;
+
+            } catch (error) { 
+                console.error("Fetch Error:", error);
+                alert("❌ תקלת תקשורת מול השרת. ודא שאתה מחובר לאינטרנט."); 
+                document.querySelector('.submit-btn').innerText = "פתח משחק!";
+                document.querySelector('.submit-btn').disabled = false;
+            }
         });
+
         function closeModal() { document.getElementById('whatsappModal').style.display = 'none'; }
     </script>
 </body>
