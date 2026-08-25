@@ -11,6 +11,9 @@
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- התוסף החדש למפת החום! -->
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; text-align: center; transition: background-color 0.4s, color 0.4s; }
@@ -357,6 +360,39 @@
         const footballIcon = L.divIcon({ html: '<div style="font-size: 26px;">⚽</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
         
         let allCourts = []; let allGames = []; let userHasLocation = false; let selectedSportFilter = 'all'; 
+        let heatLayer = null; // המשתנה שמחזיק את שכבת החום
+
+        // ==========================================
+        // מפת חום (Heatmap)
+        // ==========================================
+        function updateHeatmap() {
+            if (heatLayer) { map.removeLayer(heatLayer); } // מנקה את החום הישן
+
+            const heatPoints = [];
+            
+            // עוברים על כל המשחקים הפעילים כרגע
+            allGames.forEach(game => {
+                const court = allCourts.find(c => c.CourtName === game.CourtName);
+                
+                // אם המגרש קיים ועומד בסינון המרחק שלנו
+                if (court && (!userHasLocation || (court.distanceKm !== undefined && court.distanceKm <= 10))) {
+                    // מוסיפים נקודת חום: [קו רוחב, קו אורך, עוצמה]
+                    // העוצמה משתנה לפי כמות השחקנים החסרים
+                    const intensity = Math.min(game.MissingPlayers * 0.2, 1.0); 
+                    heatPoints.push([court.Latitude, court.Longitude, intensity]);
+                }
+            });
+
+            // מציירים את נקודות החום על המפה
+            if (heatPoints.length > 0) {
+                heatLayer = L.heatLayer(heatPoints, { 
+                    radius: 35, 
+                    blur: 25,   
+                    maxZoom: 15,
+                    gradient: {0.4: 'blue', 0.6: 'lime', 0.8: 'yellow', 1.0: 'red'} 
+                }).addTo(map);
+            }
+        }
 
         // סינון מגרשים על סמך סוג ספורט ומרחק
         function setSportFilter(sport) {
@@ -456,6 +492,9 @@
         }
 
         function renderGamesList() {
+            // ---> מפעילים את העדכון של מפת החום בכל פעם שהרשימה מתרעננת <---
+            updateHeatmap();
+            
             const container = document.getElementById('gamesList'); container.innerHTML = ''; 
             const filtered = allGames.filter(g => { 
                 const c = allCourts.find(court => court.CourtName === g.CourtName); 
