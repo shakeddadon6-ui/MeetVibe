@@ -62,8 +62,10 @@ function setLanguage(lang) {
     document.documentElement.lang = lang;
     
     const langBtn = document.getElementById('langToggleBtn');
-   if (langBtn) langBtn.innerText = (lang === 'he') ? 'EN English' : 'HE עברית';
-
+    if (langBtn) {
+        // אם השפה הנוכחית היא עברית, הכפתור יציע לעבור לאנגלית. אם באנגלית, יציע לעבור לעברית.
+        langBtn.innerText = (lang === 'he') ? 'English (EN)' : 'Hebrew (HE)';
+    }
     document.querySelectorAll('[data-i18n]').forEach(el => { 
         el.innerText = t(el.getAttribute('data-i18n')); 
     });
