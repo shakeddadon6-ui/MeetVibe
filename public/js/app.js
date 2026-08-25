@@ -55,9 +55,9 @@ function updateMapLanguage(lang) {
     if (currentTileLayer) { map.removeLayer(currentTileLayer); }
     
     if (lang === 'en') {
-        // מפה של CartoDB שמכריחה אנגלית בינלאומית (Voyager)
-        currentTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CartoDB'
+        // מפה בינלאומית באנגלית בלבד
+        currentTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri'
         });
     } else {
         // המפה הרגילה בעברית
@@ -124,7 +124,8 @@ function calcDistanceKm(lat1, lon1, lat2, lon2) {
 
 async function loadCourtsAndLocation() {
     try {
-        const response = await fetch('/api/courts'); 
+        // תוספת קריטית! שבירת מטמון (Date.now) כדי שהדפדפן תמיד ימשוך נתונים עדכניים
+        const response = await fetch('/api/courts?t=' + Date.now()); 
         allCourts = await response.json();
         allCourts.forEach(court => {
             const icon = court.SportType === 'Football' ? footballIcon : basketballIcon;
@@ -165,7 +166,12 @@ window.populateDropdown = populateDropdown;
 document.getElementById('searchBox').addEventListener('input', e => populateDropdown(e.target.value.trim()));
 
 async function loadGames() {
-    try { const response = await fetch('/api/games'); allGames = await response.json(); renderGamesList(); } catch (error) {}
+    try { 
+        // תוספת קריטית גם למשחקים!
+        const response = await fetch('/api/games?t=' + Date.now()); 
+        allGames = await response.json(); 
+        renderGamesList(); 
+    } catch (error) {}
 }
 window.loadGames = loadGames;
 
