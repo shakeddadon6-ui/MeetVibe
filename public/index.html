@@ -336,7 +336,7 @@
         }
 
         // ==========================================
-        // שאר האפליקציה (כמו שהיה)
+        // מנגנון הליבה: מפה, מיקום חכם וסינון
         // ==========================================
         let currentTimeMode = 'now'; let activeChatGameId = null; let chatPollingInterval = null;
         function setTimeMode(mode) {
@@ -350,45 +350,99 @@
             }
         }
         function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
-        const map = L.map('map').setView([31.9685, 34.7700], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        
+        const map = L.map('map').setView([31.9685, 34.7700], 13); 
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         const basketballIcon = L.divIcon({ html: '<div style="font-size: 26px;">🏀</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
         const footballIcon = L.divIcon({ html: '<div style="font-size: 26px;">⚽</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
+        
         let allCourts = []; let allGames = []; let userHasLocation = false; let selectedSportFilter = 'all'; 
 
+        // סינון מגרשים על סמך סוג ספורט ומרחק
         function setSportFilter(sport) {
             selectedSportFilter = sport;
             document.getElementById('btnAll').className = `sport-btn ${sport === 'all' ? 'active' : ''}`;
             document.getElementById('btnBasketball').className = `sport-btn ${sport === 'Basketball' ? 'active' : ''}`;
             document.getElementById('btnFootball').className = `sport-btn ${sport === 'Football' ? 'active' : ''}`;
+            
             allCourts.forEach(court => {
-                const shouldShow = (selectedSportFilter === 'all' || court.SportType === selectedSportFilter);
-                if (shouldShow) { if (!map.hasLayer(court.marker)) map.addLayer(court.marker); } else { if (map.hasLayer(court.marker)) map.removeLayer(court.marker); }
+                const matchSport = (selectedSportFilter === 'all' || court.SportType === selectedSportFilter);
+                // מסנן: רק אם המשתמש ללא מיקום, או אם יש מיקום אז רק מה שקטן מ-10 ק"מ
+                const isCloseEnough = !userHasLocation || (court.distanceKm !== undefined && court.distanceKm <= 10);
+                
+                const shouldShow = matchSport && isCloseEnough;
+                
+                if (shouldShow) { 
+                    if (!map.hasLayer(court.marker)) map.addLayer(court.marker); 
+                } else { 
+                    if (map.hasLayer(court.marker)) map.removeLayer(court.marker); 
+                }
             });
-            populateDropdown(document.getElementById('searchBox').value.trim()); renderGamesList();
+            
+            populateDropdown(document.getElementById('searchBox').value.trim()); 
+            renderGamesList();
         }
 
+        // חישוב מרחק מתמטי (קילומטרים)
+        function calcDistanceKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * (Math.PI / 180);
+            const dLon = (lon2 - lon1) * (Math.PI / 180);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
+
+        // טעינת מגרשים ובקשת מיקום
         async function loadCourtsAndLocation() {
             try {
-                const response = await fetch('/api/courts'); allCourts = await response.json();
+                const response = await fetch('/api/courts'); 
+                allCourts = await response.json();
+                
                 allCourts.forEach(court => {
                     const icon = court.SportType === 'Football' ? footballIcon : basketballIcon;
-                    const marker = L.marker([court.Latitude, court.Longitude], {icon: icon}); marker.bindPopup(`<b>${court.CourtName}</b>`); court.marker = marker; 
+                    const marker = L.marker([court.Latitude, court.Longitude], {icon: icon}); 
+                    marker.bindPopup(`<b>${court.CourtName}</b>`); 
+                    court.marker = marker; 
                 });
-                setSportFilter('all');
+
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition((position) => {
-                        userHasLocation = true; map.setView([position.coords.latitude, position.coords.longitude], 14);
-                        L.marker([position.coords.latitude, position.coords.longitude]).addTo(map).bindPopup('📍 אתה כאן!');
-                        allCourts.forEach(c => c.distanceKm = (6371 * 2 * Math.atan2(Math.sqrt(Math.sin((c.Latitude - position.coords.latitude) * (Math.PI / 180) / 2) * Math.sin((c.Latitude - position.coords.latitude) * (Math.PI / 180) / 2) + Math.cos(position.coords.latitude * (Math.PI / 180)) * Math.cos(c.Latitude * (Math.PI / 180)) * Math.sin((c.Longitude - position.coords.longitude) * (Math.PI / 180) / 2) * Math.sin((c.Longitude - position.coords.longitude) * (Math.PI / 180) / 2)), Math.sqrt(1 - (Math.sin((c.Latitude - position.coords.latitude) * (Math.PI / 180) / 2) * Math.sin((c.Latitude - position.coords.latitude) * (Math.PI / 180) / 2) + Math.cos(position.coords.latitude * (Math.PI / 180)) * Math.cos(c.Latitude * (Math.PI / 180)) * Math.sin((c.Longitude - position.coords.longitude) * (Math.PI / 180) / 2) * Math.sin((c.Longitude - position.coords.longitude) * (Math.PI / 180) / 2))))));
-                        allCourts.sort((a, b) => a.distanceKm - b.distanceKm); populateDropdown('');
-                    }, () => populateDropdown(''));
-                } else { populateDropdown(''); }
-            } catch (err) {}
+                        userHasLocation = true; 
+                        const myLat = position.coords.latitude;
+                        const myLon = position.coords.longitude;
+                        
+                        map.setView([myLat, myLon], 13);
+                        L.marker([myLat, myLon]).addTo(map).bindPopup('📍 אתה כאן!');
+                        
+                        // חישוב המרחק של כל המגרשים אליי
+                        allCourts.forEach(c => c.distanceKm = calcDistanceKm(myLat, myLon, c.Latitude, c.Longitude));
+                        allCourts.sort((a, b) => a.distanceKm - b.distanceKm); 
+                        
+                        // רק אחרי שהמרחקים חושבו, מפעילים את הסינון והציור
+                        setSportFilter('all');
+                    }, () => {
+                        // המשתמש סירב למיקום
+                        setSportFilter('all');
+                    });
+                } else { 
+                    setSportFilter('all'); 
+                }
+            } catch (err) { console.error("שגיאה בטעינת המגרשים:", err); }
         }
 
+        // הכנסת המגרשים לרשימת הבחירה (בטופס משחק חדש)
         function populateDropdown(searchTerm) {
-            const courtSelect = document.getElementById('courtId'); courtSelect.innerHTML = '<option value="">-- בחר מגרש --</option>'; 
-            allCourts.filter(c => c.CourtName.includes(searchTerm) && (selectedSportFilter === 'all' || c.SportType === selectedSportFilter)).slice(0, 50).forEach(court => {
+            const courtSelect = document.getElementById('courtId'); 
+            courtSelect.innerHTML = '<option value="">-- בחר מגרש --</option>'; 
+            
+            allCourts.filter(c => {
+                const matchName = c.CourtName.includes(searchTerm);
+                const matchSport = (selectedSportFilter === 'all' || c.SportType === selectedSportFilter);
+                // מסנן גם את הרשימה לפי מרחק - רק עד 10 ק"מ!
+                const isCloseEnough = !userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10);
+                
+                return matchName && matchSport && isCloseEnough;
+            }).slice(0, 50).forEach(court => {
                 const option = document.createElement('option'); option.value = court.CourtID;
                 option.textContent = `${court.CourtName} ${court.SportType === 'Football' ? '⚽' : '🏀'} ${(userHasLocation && court.distanceKm !== undefined) ? `(${court.distanceKm.toFixed(1)} ק"מ)` : ''}`;
                 courtSelect.appendChild(option);
@@ -396,13 +450,18 @@
         }
         document.getElementById('searchBox').addEventListener('input', e => populateDropdown(e.target.value.trim()));
 
+        // משחקים שקורים עכשיו
         async function loadGames() {
             try { const response = await fetch('/api/games'); allGames = await response.json(); renderGamesList(); } catch (error) {}
         }
 
         function renderGamesList() {
             const container = document.getElementById('gamesList'); container.innerHTML = ''; 
-            const filtered = allGames.filter(g => { const c = allCourts.find(court => court.CourtName === g.CourtName); return c && (selectedSportFilter === 'all' || c.SportType === selectedSportFilter) && (!userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10)); });
+            const filtered = allGames.filter(g => { 
+                const c = allCourts.find(court => court.CourtName === g.CourtName); 
+                return c && (selectedSportFilter === 'all' || c.SportType === selectedSportFilter) && (!userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10)); 
+            });
+            
             if (filtered.length === 0) { container.innerHTML = '<p>אין משחקים פתוחים. פתח אחד!</p>'; return; }
             filtered.forEach(game => {
                 const parts = game.StartTimeStr.split(/[- :]/); const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
@@ -423,6 +482,7 @@
             } catch (error) { alert('שגיאת תקשורת'); }
         }
 
+        // צ'אט מגרש
         function openChat(gameId, courtName) {
             activeChatGameId = gameId; document.getElementById('chatTitle').innerText = `💬 צ'אט: ${courtName}`; document.getElementById('chatModal').style.display = 'flex';
             fetchChatMessages(); chatPollingInterval = setInterval(fetchChatMessages, 2000);
@@ -442,12 +502,14 @@
                 chatBox.scrollTop = chatBox.scrollHeight;
             } catch (error) {}
         }
+        
         async function sendChatMessage() {
             const text = document.getElementById('chatInput').value.trim(); if (!text || !activeChatGameId) return; document.getElementById('chatInput').value = ''; 
             try { await fetch(`/api/games/${activeChatGameId}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senderName: myUsername, messageText: text }) }); fetchChatMessages(); } catch (error) {}
         }
         function handleChatEnter(e) { if (e.key === 'Enter') sendChatMessage(); }
 
+        // שליחת טופס פתיחת משחק
         document.getElementById('newGameForm').addEventListener('submit', async function(event) {
             event.preventDefault(); 
             const courtId = document.getElementById('courtId').value; const missingPlayers = document.getElementById('missingPlayers').value; let sqlStartTime; const now = new Date();
