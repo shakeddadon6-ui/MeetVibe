@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ app.js - מנגנון הליבה
+// קובץ app.js - מנגנון הליבה: מפה, משחקים וסינון מתורגם!
 // ==========================================
 
 let myUserId = localStorage.getItem('sportMatchUserId');
@@ -19,7 +19,10 @@ function showMainApp() {
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     
-    document.getElementById('welcomeMessage').innerText = t("welcome").replace('{name}', myUsername);
+    const savedUsername = localStorage.getItem('sportMatchUser');
+    if (savedUsername) {
+        document.getElementById('welcomeMessage').innerText = t("welcome").replace('{name}', savedUsername);
+    }
     
     setTimeout(() => { map.invalidateSize(); loadCourtsAndLocation(); loadGames(); }, 300);
 }
@@ -43,7 +46,7 @@ function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 window.toggleDarkMode = toggleDarkMode;
 
 // ==========================================
-// הגדרת המפה והחלפת שפה דינמית (מתוקן!)
+// הגדרת המפה והחלפת שפה דינמית
 // ==========================================
 const map = L.map('map').setView([31.9685, 34.7700], 13); 
 let currentTileLayer = null;
@@ -52,9 +55,15 @@ function updateMapLanguage(lang) {
     if (currentTileLayer) { map.removeLayer(currentTileLayer); }
     
     if (lang === 'en') {
-        currentTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png');
+        // Esri World Street Map (אנגלית)
+        currentTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
+        });
     } else {
-        currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+        // OpenStreetMap (עברית בישראל)
+        currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        });
     }
     currentTileLayer.addTo(map);
 }
