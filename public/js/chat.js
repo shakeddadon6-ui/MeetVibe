@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ chat.js - ניהול הודעות וצ'אט המגרשים
+// קובץ chat.js - ניהול הודעות וצ'אט מתורגם
 // ==========================================
 
 let activeChatGameId = null; 
@@ -7,12 +7,11 @@ let chatPollingInterval = null;
 
 function openChat(gameId, courtName) {
     activeChatGameId = gameId; 
-    document.getElementById('chatTitle').innerText = `💬 צ'אט: ${courtName}`; 
+    document.getElementById('chatTitle').innerText = `💬 ${t("chatTitle")}: ${courtName}`; // תרגום!
     document.getElementById('chatModal').style.display = 'flex';
     fetchChatMessages(); 
     chatPollingInterval = setInterval(fetchChatMessages, 2000);
 }
-// חושפים ל-HTML
 window.openChat = openChat;
 
 function closeChat() { 
@@ -31,16 +30,16 @@ async function fetchChatMessages() {
         chatBox.innerHTML = ''; 
         
         if (messages.length === 0) { 
-            chatBox.innerHTML = '<p style="text-align:center; color:gray; margin-top:20px;">אין הודעות. תגיד שלום! 👋</p>'; 
+            chatBox.innerHTML = `<p style="text-align:center; color:gray; margin-top:20px;">${t("chatEmpty")}</p>`; // תרגום!
             return; 
         }
         
         messages.forEach(msg => {
-            // משתמשים במשתנה הגלובלי myUsername מהקובץ הראשי
             const isMe = msg.SenderName === myUsername; 
             const msgDiv = document.createElement('div'); 
             msgDiv.className = `message ${isMe ? 'msg-me' : 'msg-other'}`;
-            msgDiv.innerHTML = `<span class="msg-sender">${isMe ? 'אני' : msg.SenderName}</span>${msg.MessageText}<span class="msg-time">${msg.SendTime.substring(0, 5)}</span>`; 
+            // תרגום לשם השולח:
+            msgDiv.innerHTML = `<span class="msg-sender">${isMe ? t("chatMe") : msg.SenderName}</span>${msg.MessageText}<span class="msg-time">${msg.SendTime.substring(0, 5)}</span>`; 
             chatBox.appendChild(msgDiv);
         });
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -59,7 +58,6 @@ async function sendChatMessage() {
         await fetch(`/api/games/${activeChatGameId}/chat`, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
-            // משתמשים ב-myUsername שהוגדר ב-index
             body: JSON.stringify({ senderName: myUsername, messageText: text }) 
         }); 
         fetchChatMessages(); 

@@ -12,12 +12,20 @@ const translations = {
         forgotPassword: "שכחתי סיסמה 🤔", backToLogin: "חזור להתחברות",
         welcome: "👋 אהלן {name}! מה נשחק היום?",
         filterAll: "🌍 הכל", filterBasketball: "🏀 כדורסל", filterFootball: "⚽ כדורגל",
-        formTitle: "➕ פתח משחק חדש", searchPlaceholder: "🔍 הקלד שם מגרש לחיפוש...", selectPlaceholder: "-- בחר מגרש --", searchingLocation: "מחפש מיקום... 📍",
+        formTitle: "➕ פתח משחק חדש", searchPlaceholder: "🔍 הקלד שם מגרש לחיפוש מהיר...", selectPlaceholder: "-- בחר מגרש --", searchingLocation: "מחפש מיקום... 📍",
         missingPlayersPlaceholder: "כמה שחקנים חסרים?", btnNow: "⚡ עכשיו", btnFuture: "🕰️ עתידי", submitGameBtn: "פתח משחק!",
         activeGamesTitle: "🔥 משחקים שקורים עכשיו:", noGames: "אין משחקים פתוחים. פתח אחד!", creator: "👤 יוצר:",
         missingBadge: "🔥 חסרים {count} שחקנים!", joinBtn: "🙋‍♂️ אני בא!", chatBtn: "💬 צ'אט", logout: "🚪 התנתק",
-        nightMode: "🌙 לילה", dayMode: "☀️ יום", chatTitle: "💬 צ'אט", chatPlaceholder: "הקלד הודעה...",
-        gameCreatedTitle: "🎉 המשחק נפתח!", whatsappBtn: "💬 שלח בוואטסאפ", closeBtn: "סגור"
+        nightMode: "🌙 לילה", dayMode: "☀️ יום", chatTitle: "צ'אט", chatPlaceholder: "הקלד הודעה...",
+        gameCreatedTitle: "🎉 המשחק נפתח!", whatsappBtn: "💬 שלח בוואטסאפ", closeBtn: "סגור",
+        
+        // התראות וטקסטים דינמיים של המערכת
+        selectCourtAlert: "📍 היי! שכחת לבחור מגרש מהרשימה.", missingPlayersAlert: "👥 היי! אנא הזן כמה שחקנים חסרים.",
+        joinedSuccess: "הצטרפת בהצלחה! מעביר אותך לצ'אט...", timePastError: "❌ שגיאה: בחרת שעה שכבר עברה.",
+        creatingGame: "פותח משחק... ⏳", serverError: "❌ השרת דחה את הבקשה: ", netError: "❌ תקלת תקשורת מול השרת.",
+        youAreHere: "📍 אתה כאן!", distanceKm: 'ק"מ', awayFromYou: 'ק"מ ממך', happeningNow: '🟢 קורה עכשיו (ב-{time})', futureGame: '🕰️ עתידי להיום (ב-{time})',
+        chatMe: "אני", chatEmpty: "אין הודעות. תגיד שלום! 👋",
+        authSuccess: "נרשמת בהצלחה! בבקשה התחבר.", loginError: "תקלה בהתחברות."
     },
     en: {
         appTitle: "SportMatch", loginTab: "Login", registerTab: "Register",
@@ -30,30 +38,32 @@ const translations = {
         missingPlayersPlaceholder: "Missing players?", btnNow: "⚡ Now", btnFuture: "🕰️ Later", submitGameBtn: "Open Game!",
         activeGamesTitle: "🔥 Active Games Right Now:", noGames: "No open games. Open one!", creator: "👤 Creator:",
         missingBadge: "🔥 Missing {count} players!", joinBtn: "🙋‍♂️ I'm in!", chatBtn: "💬 Chat", logout: "🚪 Logout",
-        nightMode: "🌙 Dark", dayMode: "☀️ Light", chatTitle: "💬 Chat", chatPlaceholder: "Type a message...",
-        gameCreatedTitle: "🎉 Game Created!", whatsappBtn: "💬 Share on WhatsApp", closeBtn: "Close"
+        nightMode: "🌙 Dark", dayMode: "☀️ Light", chatTitle: "Chat", chatPlaceholder: "Type a message...",
+        gameCreatedTitle: "🎉 Game Created!", whatsappBtn: "💬 Share on WhatsApp", closeBtn: "Close",
+        
+        // System dynamic text
+        selectCourtAlert: "📍 Hey! You forgot to select a court.", missingPlayersAlert: "👥 Please enter missing players.",
+        joinedSuccess: "Successfully joined! Opening chat...", timePastError: "❌ Error: Time already passed.",
+        creatingGame: "Opening game... ⏳", serverError: "❌ Server error: ", netError: "❌ Network error.",
+        youAreHere: "📍 You are here!", distanceKm: 'km', awayFromYou: 'km away', happeningNow: '🟢 Happening now (at {time})', futureGame: '🕰️ Future today (at {time})',
+        chatMe: "Me", chatEmpty: "No messages yet. Say hi! 👋",
+        authSuccess: "Registered successfully! Please login.", loginError: "Login error."
     }
 };
 
-// הפונקציה ששולפת את המילה הנכונה לפי השפה
-function t(key) { 
-    return translations[currentLang][key] || key; 
-}
-window.t = t; // חושפים לכל שאר הקבצים
+function t(key) { return translations[currentLang][key] || key; }
+window.t = t;
 
 function setLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('sportMatchLang', lang);
     
-    // משנה את כיוון העמוד מימין-לשמאל או משמאל-לימין
     document.documentElement.dir = (lang === 'he') ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;
     
-    // עדכון כפתור השפה
     const langBtn = document.getElementById('langToggleBtn');
     if (langBtn) langBtn.innerText = (lang === 'he') ? '🇬🇧 English' : '🇮🇱 עברית';
 
-    // עובר על כל האלמנטים ב-HTML שדורשים תרגום ומתרגם אותם
     document.querySelectorAll('[data-i18n]').forEach(el => { 
         el.innerText = t(el.getAttribute('data-i18n')); 
     });
@@ -61,21 +71,21 @@ function setLanguage(lang) {
         el.placeholder = t(el.getAttribute('data-i18n-placeholder')); 
     });
 
-    // עדכון משפט הפתיחה (אם המשתמש מחובר)
     if (window.myUsername) {
         const welcomeEl = document.getElementById('welcomeMessage');
         if (welcomeEl) welcomeEl.innerText = t("welcome").replace('{name}', window.myUsername);
     }
+    
+    // רענון מרכיבים דינמיים של הליבה כדי לתרגם אותם בלייב
+    if (typeof renderGamesList === 'function' && typeof allGames !== 'undefined') renderGamesList();
+    if (typeof populateDropdown === 'function') {
+        const searchBox = document.getElementById('searchBox');
+        populateDropdown(searchBox ? searchBox.value.trim() : '');
+    }
 }
 window.setLanguage = setLanguage;
 
-function toggleLanguage() { 
-    setLanguage(currentLang === 'he' ? 'en' : 'he'); 
-    
-    // מרענן את רשימת המשחקים כדי שגם היא תתורגם (אם הקובץ נטען)
-    if (typeof renderGamesList === 'function') renderGamesList();
-}
+function toggleLanguage() { setLanguage(currentLang === 'he' ? 'en' : 'he'); }
 window.toggleLanguage = toggleLanguage;
 
-// מפעיל את השפה ברגע שהעמוד נטען
 document.addEventListener('DOMContentLoaded', () => setLanguage(currentLang));

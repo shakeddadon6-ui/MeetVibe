@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ auth.js - ניהול משתמשים והתחברות
+// קובץ auth.js - ניהול משתמשים והתחברות מתורגם
 // ==========================================
 
 function switchAuthTab(tab) {
@@ -23,7 +23,6 @@ function switchAuthTab(tab) {
         }
     }
 }
-// חושפים את הפונקציה ל-HTML
 window.switchAuthTab = switchAuthTab;
 
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
@@ -37,7 +36,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         });
         const data = await res.json();
         if(res.ok) { 
-            alert(t("authSuccess")); 
+            alert(t("authSuccess")); // תרגום!
             switchAuthTab('login'); 
             document.getElementById('loginPhone').value = phone; 
         } else { 
@@ -47,7 +46,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
                 document.getElementById('loginPhone').value = phone; 
             } 
         }
-    } catch(err) { alert(t("netError")); }
+    } catch(err) { alert(t("netError")); } // תרגום!
 });
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -62,7 +61,6 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         if(res.ok) { 
             localStorage.setItem('sportMatchUserId', data.userId); 
             localStorage.setItem('sportMatchUser', data.userName); 
-            // מעדכנים את המשתנים מהקובץ הראשי
             myUserId = data.userId; 
             myUsername = data.userName; 
             showMainApp(); 
@@ -73,7 +71,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 document.getElementById('regPhone').value = phone; 
             } 
         }
-    } catch(err) { alert(t("loginError")); }
+    } catch(err) { alert(t("loginError")); } // תרגום!
 });
 
 document.getElementById('forgotForm').addEventListener('submit', async (e) => {
@@ -90,7 +88,7 @@ document.getElementById('forgotForm').addEventListener('submit', async (e) => {
             switchAuthTab('login');
             document.getElementById('loginPhone').value = phone;
         }
-    } catch(err) { alert(t("netError")); }
+    } catch(err) { alert(t("netError")); } // תרגום!
 });
 
 function logout() { 
@@ -98,5 +96,4 @@ function logout() {
     localStorage.removeItem('sportMatchUser'); 
     location.reload(); 
 }
-// חושפים את הפונקציה ל-HTML
 window.logout = logout;
