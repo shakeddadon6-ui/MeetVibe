@@ -62,7 +62,7 @@ function setLanguage(lang) {
     document.documentElement.lang = lang;
     
     const langBtn = document.getElementById('langToggleBtn');
-    if (langBtn) langBtn.innerText = (lang === 'he') ? '🇬🇧 English' : '🇮🇱 עברית';
+   if (langBtn) langBtn.innerText = (lang === 'he') ? 'EN English' : '🇮🇱 עברית';
 
     document.querySelectorAll('[data-i18n]').forEach(el => { 
         el.innerText = t(el.getAttribute('data-i18n')); 

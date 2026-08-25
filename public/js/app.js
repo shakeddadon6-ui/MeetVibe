@@ -19,7 +19,7 @@ function showMainApp() {
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     
-    // משיכת ברכת השלום מהמילון!
+    // משיכת ברכת השלום מהמילון
     document.getElementById('welcomeMessage').innerText = t("welcome").replace('{name}', myUsername);
     
     setTimeout(() => { map.invalidateSize(); loadCourtsAndLocation(); loadGames(); }, 300);
@@ -109,7 +109,7 @@ async function loadCourtsAndLocation() {
                 userHasLocation = true; 
                 const myLat = position.coords.latitude; const myLon = position.coords.longitude;
                 map.setView([myLat, myLon], 13);
-                // תרגום למיקום!
+                // תרגום פופ-אפ מפה ("אתה כאן!")
                 L.marker([myLat, myLon]).addTo(map).bindPopup(t("youAreHere"));
                 allCourts.forEach(c => c.distanceKm = calcDistanceKm(myLat, myLon, c.Latitude, c.Longitude));
                 allCourts.sort((a, b) => a.distanceKm - b.distanceKm); 
@@ -122,7 +122,7 @@ window.loadCourtsAndLocation = loadCourtsAndLocation;
 
 function populateDropdown(searchTerm) {
     const courtSelect = document.getElementById('courtId'); 
-    // תרגום לרשימה הנגללת
+    // תרגום פלייס-הולדר "-- בחר מגרש --"
     courtSelect.innerHTML = `<option value="">${t("selectPlaceholder")}</option>`; 
     allCourts.filter(c => {
         const matchName = c.CourtName.includes(searchTerm);
@@ -131,6 +131,7 @@ function populateDropdown(searchTerm) {
         return matchName && matchSport && isCloseEnough;
     }).slice(0, 50).forEach(court => {
         const option = document.createElement('option'); option.value = court.CourtID;
+        // תרגום מרחק "ק"מ" ברשימה
         option.textContent = `${court.CourtName} ${court.SportType === 'Football' ? '⚽' : '🏀'} ${(userHasLocation && court.distanceKm !== undefined) ? `(${court.distanceKm.toFixed(1)} ${t("distanceKm")})` : ''}`;
         courtSelect.appendChild(option);
     });
@@ -151,6 +152,7 @@ function renderGamesList() {
         return c && (selectedSportFilter === 'all' || c.SportType === selectedSportFilter) && (!userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10)); 
     });
     
+    // תרגום הודעת "אין משחקים פתוחים"
     if (filtered.length === 0) { 
         container.innerHTML = `<p>${t("noGames")}</p>`; 
         return; 
@@ -163,8 +165,9 @@ function renderGamesList() {
         const c = allCourts.find(court => court.CourtName === game.CourtName);
         const card = document.createElement('div'); card.className = 'game-card';
         
-        // יצירת תגיות מתורגמות
+        // תרגום "קורה עכשיו" ו-"עתידי"
         const timeBadgeHtml = diffMins <= 30 ? `<div class="time-badge time-now">${t("happeningNow").replace('{time}', timeString)}</div>` : `<div class="time-badge time-future">${t("futureGame").replace('{time}', timeString)}</div>`;
+        // תרגום "ק"מ ממך"
         const distanceHtml = userHasLocation && c.distanceKm ? `<div class="detail" style="color: #3498db; font-size: 0.95em; margin-top: 5px;">(${c.distanceKm.toFixed(1)} ${t("awayFromYou")})</div>` : '';
         
         card.innerHTML = `<div class="court-name">${c.SportType === 'Football' ? '⚽' : '🏀'} 📍 ${game.CourtName}</div><div class="detail"><strong>${t("creator")}</strong> ${game.CreatorName}</div>${timeBadgeHtml}${distanceHtml}<div class="badge">${t("missingBadge").replace('{count}', game.MissingPlayers)}</div><div class="btn-group"><button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">${t("joinBtn")}</button><button class="chat-btn" onclick="openChat(${game.GameID}, '${game.CourtName}')">${t("chatBtn")}</button></div>`;
@@ -177,6 +180,7 @@ async function joinGame(gameId, courtName) {
     try {
         const response = await fetch(`/api/games/${gameId}/join`, { method: 'PUT' });
         const data = await response.json();
+        // תרגום הצטרפות בהצלחה
         if (response.ok) { alert(t("joinedSuccess")); loadGames(); openChat(gameId, courtName); } else { alert(data.error); }
     } catch (error) { alert(t("netError")); }
 }
@@ -186,6 +190,7 @@ async function createNewGame() {
     const courtId = document.getElementById('courtId').value; 
     const missingPlayers = document.getElementById('missingPlayers').value; 
     
+    // תרגום התראות של חסר מגרש / שחקנים
     if (!courtId) { alert(t("selectCourtAlert")); return; }
     if (!missingPlayers || missingPlayers < 1) { alert(t("missingPlayersAlert")); return; }
 
@@ -194,13 +199,13 @@ async function createNewGame() {
         sqlStartTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
     } else {
         const hStr = document.getElementById('gameHour').value; const mStr = document.getElementById('gameMinute').value; const gameTime = new Date(); gameTime.setHours(parseInt(hStr), parseInt(mStr), 0, 0);
-        if (gameTime < now && (now - gameTime) > 300000) { alert(t("timePastError")); return; }
+        if (gameTime < now && (now - gameTime) > 300000) { alert(t("timePastError")); return; } // תרגום שגיאת זמן
         sqlStartTime = `${gameTime.getFullYear()}-${String(gameTime.getMonth() + 1).padStart(2, '0')}-${String(gameTime.getDate()).padStart(2, '0')} ${hStr}:${mStr}:00`;
     }
     
     try {
         const submitBtn = document.querySelector('.submit-btn');
-        submitBtn.innerText = t("creatingGame"); submitBtn.disabled = true;
+        submitBtn.innerText = t("creatingGame"); submitBtn.disabled = true; // תרגום "פותח משחק"
         const creatorId = parseInt(myUserId);
         const response = await fetch('/api/games', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courtId: parseInt(courtId), creatorPlayerId: creatorId, missingPlayers: parseInt(missingPlayers), startTime: sqlStartTime }) });
         
