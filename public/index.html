@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SportMatch - מפה ומשחקים</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; text-align: center; transition: background-color 0.4s, color 0.4s; }
+        
+        /* ========================================== */
+        /* עיצוב מסך ההתחברות המשודרג */
+        /* ========================================== */
+        .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #3498db, #2ecc71); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .auth-container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 90%; max-width: 400px; text-align: center; position: relative; overflow: hidden; }
+        .auth-container h1 { color: #2c3e50; font-size: 2.2em; margin-bottom: 20px; }
+        
+        .auth-tabs { display: flex; margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; }
+        .auth-tab { flex: 1; padding: 10px; background: #ecf0f1; border: none; cursor: pointer; font-size: 1.1em; font-weight: bold; color: #7f8c8d; transition: 0.3s; }
+        .auth-tab.active { background: #3498db; color: white; }
+        
+        .auth-form { transition: all 0.3s; }
+        .auth-form input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1.1em; outline: none; transition: 0.3s; }
+        .auth-form input:focus { border-color: #2ecc71; box-shadow: 0 0 5px rgba(46, 204, 113, 0.3); }
+        .auth-form button { width: 100%; padding: 12px; margin-top: 15px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-size: 1.2em; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .auth-form button:hover { background: #27ae60; }
+
+        .forgot-pass-link { display: block; margin-top: 15px; color: #3498db; text-decoration: none; font-size: 0.95em; cursor: pointer; }
+        .forgot-pass-link:hover { text-decoration: underline; }
+        
+        /* ========================================== */
+        /* עיצוב כללי של האפליקציה */
+        /* ========================================== */
+        #mainApp { display: none; }
+
+        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; max-width: 900px; margin: 0 auto 15px auto; }
+        h1.main-title { color: #2c3e50; font-size: 2.2em; margin: 0; flex: 2; text-align: center; }
+        .top-btn { background: #2c3e50; color: #f1c40f; border: none; padding: 10px 15px; border-radius: 20px; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .top-btn:hover { transform: scale(1.05); }
+        .logout-btn { background: #e74c3c; color: white; }
+        
+        .welcome-bar { background: #34495e; color: white; padding: 10px; border-radius: 8px; font-weight: bold; max-width: 900px; margin: 0 auto 20px auto; font-size: 1.2em; }
+        .filter-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        .sport-btn { background-color: #ecf0f1; color: #2c3e50; border: 2px solid #bdc3c7; padding: 10px 25px; border-radius: 30px; font-size: 1.2em; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+        .sport-btn.active { background-color: #3498db; color: white; border-color: #2980b9; }
+
+        #map { height: 400px; width: 100%; max-width: 900px; margin: 0 auto 30px auto; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid #3498db; z-index: 1; }
+        .form-container { background: white; padding: 20px; border-radius: 12px; max-width: 500px; margin: 0 auto 30px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 6px solid #e74c3c; }
+        select, input.app-input { padding: 10px; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 1.1em; width: 90%; }
+        
+        .time-toggle-container { display: flex; justify-content: center; width: 90%; margin: 10px auto; background: #ecf0f1; border-radius: 8px; overflow: hidden; border: 1px solid #bdc3c7; }
+        .time-btn { flex: 1; padding: 12px; border: none; background: transparent; font-weight: bold; font-size: 1.1em; cursor: pointer; color: #7f8c8d; transition: all 0.3s; }
+        .time-btn.active { background: #3498db; color: white; }
+        .time-picker-wrapper { display: flex; width: 90%; margin: 10px auto; align-items: center; justify-content: center; background: #f8f9fa; border: 1px solid #ccc; border-radius: 6px; padding: 5px 10px; direction: ltr; box-sizing: border-box; }
+        .time-picker-wrapper select { border: none; background: transparent; padding: 5px 15px; font-weight: bold; font-size: 1.3em; color: #2c3e50; outline: none; cursor: pointer; appearance: none; -webkit-appearance: none; }
+        
+        button.submit-btn { background-color: #e74c3c; color: white; font-weight: bold; cursor: pointer; border: none; width: 90%; margin-top: 15px; padding: 12px; font-size: 1.2em; border-radius: 6px; }
+        
+        #searchBox { border: 2px solid #3498db; background-color: #f8f9fa; }
+        #selectedAddressDisplay { color: #27ae60; font-weight: bold; font-size: 1.1em; margin: 10px 0; min-height: 25px; }
+
+        .games-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 900px; margin: 0 auto; }
+        .game-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; width: 320px; border-top: 6px solid #2ecc71; text-align: right; display: flex; flex-direction: column; justify-content: space-between; }
+        .court-name { font-size: 1.3em; font-weight: bold; color: #2c3e50; margin-bottom: 12px; }
+        .detail { margin: 8px 0; color: #555; font-size: 1.1em; }
+        .badge { background-color: #f39c12; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-block; margin: 15px 0; text-align: center; }
+        .time-badge { font-weight: bold; padding: 5px 10px; border-radius: 8px; display: inline-block; margin-top: 5px; font-size: 0.95em; }
+        .time-now { background-color: #ffeaa7; color: #d35400; border: 1px solid #fdcb6e; }
+        .time-future { background-color: #e0f7fa; color: #0097a7; border: 1px solid #b2ebf2; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: auto; }
+        .join-btn { background-color: #2ecc71; color: white; font-weight: bold; font-size: 1.1em; padding: 12px; border: none; border-radius: 8px; cursor: pointer; flex: 2; transition: 0.3s; }
+        .chat-btn { background-color: #3498db; color: white; font-weight: bold; font-size: 1.1em; padding: 12px; border: none; border-radius: 8px; cursor: pointer; flex: 1; transition: 0.3s; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; text-align: center; max-width: 400px; width: 90%; border-top: 6px solid #25D366; }
+        .wa-btn { background-color: #25D366; color: white; border: none; padding: 15px; font-size: 1.2em; border-radius: 30px; cursor: pointer; font-weight: bold; margin: 20px 0; width: 100%; }
+
+        .chat-modal { background: #e5ddd5; padding: 0; border-radius: 15px; max-width: 450px; width: 95%; height: 80vh; display: flex; flex-direction: column; overflow: hidden; border-top: 6px solid #128C7E; }
+        .chat-header { background: #075E54; color: white; padding: 15px; display: flex; justify-content: space-between; font-size: 1.2em; font-weight: bold; }
+        .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { max-width: 75%; padding: 10px 15px; border-radius: 15px; position: relative; font-size: 1em; }
+        .msg-other { background: white; align-self: flex-start; border-top-left-radius: 0; }
+        .msg-me { background: #dcf8c6; align-self: flex-end; border-top-right-radius: 0; }
+        .msg-sender { font-size: 0.75em; font-weight: bold; color: #3498db; display: block; margin-bottom: 3px; }
+        .msg-time { font-size: 0.7em; color: #7f8c8d; margin-top: 5px; display: block; text-align: left; }
+        .chat-input-area { background: #f0f0f0; padding: 10px; display: flex; gap: 10px; }
+        .chat-input-area input { flex: 1; padding: 12px; border-radius: 30px; border: none; outline: none; }
+        .chat-input-area button { background: #128C7E; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 1.2em; }
+
+        /* Dark Mode */
+        body.dark-mode { background-color: #1a1a2e; color: #ecf0f1; }
+        body.dark-mode .form-container, body.dark-mode .game-card { background-color: #16213e; border-top-color: #e94560; }
+        body.dark-mode select, body.dark-mode input.app-input { background-color: #0f3460; color: white; border-color: #e94560; }
+        body.dark-mode .welcome-bar { background: #e94560; }
+        body.dark-mode h1.main-title { color: #f1c40f; }
+        body.dark-mode .time-toggle-container { background: #0f3460; border-color: #16213e; }
+        body.dark-mode .time-picker-wrapper { background: #0f3460; border-color: #e94560; }
+        body.dark-mode .time-picker-wrapper select, body.dark-mode .time-picker-separator { color: white; }
+        body.dark-mode .court-name { color: #f1c40f; }
+        body.dark-mode .detail { color: #bdc3c7; }
+        body.dark-mode .sport-btn { background-color: #0f3460; color: #ecf0f1; border-color: #16213e; }
+        body.dark-mode .sport-btn.active { background-color: #e94560; border-color: #c0392b; }
+        body.dark-mode .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+    </style>
+</head>
+<body>
+
+    <!-- ========================================== -->
+    <!-- מסך הרשמה, התחברות ואיפוס סיסמה -->
+    <!-- ========================================== -->
+    <div id="authScreen" class="auth-overlay">
+        <div class="auth-container">
+            <h1>🗺️ SportMatch</h1>
+            
+            <div class="auth-tabs" id="authTabs">
+                <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')">התחברות</button>
+                <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')">הרשמה</button>
+            </div>
+            
+            <!-- התחברות -->
+            <form id="loginForm" class="auth-form">
+                <input type="tel" id="loginPhone" placeholder="מספר טלפון" required>
+                <input type="password" id="loginPassword" placeholder="סיסמה" required>
+                <button type="submit">היכנס למגרש</button>
+                <a class="forgot-pass-link" onclick="switchAuthTab('forgot')">שכחתי סיסמה 🤔</a>
+            </form>
+            
+            <!-- הרשמה -->
+            <form id="registerForm" class="auth-form" style="display: none;">
+                <input type="text" id="regName" placeholder="שם מלא" required>
+                <input type="tel" id="regPhone" placeholder="מספר טלפון" required>
+                <input type="password" id="regPassword" placeholder="בחר סיסמה" required>
+                <button type="submit">צור משתמש חדש</button>
+            </form>
+
+            <!-- איפוס סיסמה -->
+            <form id="forgotForm" class="auth-form" style="display: none;">
+                <h3 style="margin-top: 0; color: #e74c3c;">איפוס סיסמה</h3>
+                <p style="font-size: 0.9em; color: #7f8c8d;">הזן את המספר שלך כדי לבחור סיסמה חדשה.</p>
+                <input type="tel" id="forgotPhone" placeholder="מספר טלפון" required>
+                <input type="password" id="forgotNewPassword" placeholder="סיסמה חדשה" required>
+                <button type="submit" style="background: #e74c3c;">עדכן סיסמה</button>
+                <a class="forgot-pass-link" onclick="switchAuthTab('login')">חזור להתחברות</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- האפליקציה המרכזית -->
+    <!-- ========================================== -->
+    <div id="mainApp">
+        <div class="header-container">
+            <button id="darkModeToggle" class="top-btn" onclick="toggleDarkMode()">🌙 לילה</button>
+            <h1 class="main-title">SportMatch</h1>
+            <button class="top-btn logout-btn" onclick="logout()">🚪 התנתק</button>
+        </div>
+
+        <div id="welcomeMessage" class="welcome-bar"></div>
+        
+        <div class="filter-container">
+            <button id="btnAll" class="sport-btn active" onclick="setSportFilter('all')">🌍 הכל</button>
+            <button id="btnBasketball" class="sport-btn" onclick="setSportFilter('Basketball')">🏀 כדורסל</button>
+            <button id="btnFootball" class="sport-btn" onclick="setSportFilter('Football')">⚽ כדורגל</button>
+        </div>
+
+        <div id="map"></div>
+        
+        <div class="form-container">
+            <h3>➕ פתח משחק חדש</h3>
+            <form id="newGameForm">
+                <input type="text" id="searchBox" class="app-input" placeholder="🔍 הקלד שם מגרש לחיפוש מהיר...">
+                <select id="courtId" class="app-input" required><option value="">מחפש מיקום... 📍</option></select>
+                <div id="selectedAddressDisplay"></div>
+                
+                <input type="number" id="missingPlayers" class="app-input" placeholder="כמה שחקנים חסרים?" min="1" max="10" required>
+                
+                <div class="time-toggle-container">
+                    <button type="button" id="btnTimeNow" class="time-btn active" onclick="setTimeMode('now')">⚡ עכשיו</button>
+                    <button type="button" id="btnTimeFuture" class="time-btn" onclick="setTimeMode('future')">🕰️ עתידי</button>
+                </div>
+                <div class="time-picker-wrapper" id="timePickerWrapper" style="display: none;">
+                    <select id="gameHour"></select><span class="time-picker-separator">:</span><select id="gameMinute"></select>
+                </div>
+                <button type="submit" class="submit-btn">פתח משחק!</button>
+            </form>
+        </div>
+
+        <h2 style="color: #2c3e50;">🔥 משחקים שקורים עכשיו:</h2>
+        <div id="gamesList" class="games-container"></div>
+    </div>
+
+    <!-- מודלים נלווים -->
+    <div id="chatModal" class="modal-overlay">
+        <div class="chat-modal">
+            <div class="chat-header">
+                <span id="chatTitle">💬 צ'אט</span>
+                <button onclick="closeChat()" style="background:none; border:none; color:white; font-size:1.5em; cursor:pointer;">&times;</button>
+            </div>
+            <div id="chatMessages" class="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="הקלד הודעה..." onkeypress="handleChatEnter(event)">
+                <button onclick="sendChatMessage()">➤</button>
+            </div>
+        </div>
+    </div>
+    <div id="whatsappModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="margin-top: 0; color: #333;">🎉 המשחק נפתח!</h2>
+            <button id="waShareBtn" class="wa-btn">💬 שלח בוואטסאפ</button>
+            <button onclick="closeModal()" class="close-btn" style="background:none; border:none; color:gray; text-decoration:underline; font-size: 1.1em; cursor:pointer; margin-top:10px;">סגור</button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // הניתוב החכם של ההתחברות (Smart Routing)
+        // ==========================================
+        let myUserId = localStorage.getItem('sportMatchUserId');
+        let myUsername = localStorage.getItem('sportMatchUser');
+
+        window.onload = function() {
+            if (myUserId && myUsername) { showMainApp(); } 
+            else { document.getElementById('authScreen').style.display = 'flex'; document.getElementById('mainApp').style.display = 'none'; }
+            
+            const hourSelect = document.getElementById('gameHour');
+            for (let i = 0; i < 24; i++) hourSelect.innerHTML += `<option value="${String(i).padStart(2, '0')}">${String(i).padStart(2, '0')}</option>`;
+            const minuteSelect = document.getElementById('gameMinute');
+            for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${String(i).padStart(2, '0')}">${String(i).padStart(2, '0')}</option>`;
+        };
+
+        function switchAuthTab(tab) {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('forgotForm').style.display = 'none';
+            
+            if (tab === 'forgot') {
+                document.getElementById('authTabs').style.display = 'none';
+                document.getElementById('forgotForm').style.display = 'block';
+            } else {
+                document.getElementById('authTabs').style.display = 'flex';
+                if(tab === 'login') {
+                    document.getElementById('tabLogin').classList.add('active');
+                    document.getElementById('tabRegister').classList.remove('active');
+                    document.getElementById('loginForm').style.display = 'block';
+                } else {
+                    document.getElementById('tabRegister').classList.add('active');
+                    document.getElementById('tabLogin').classList.remove('active');
+                    document.getElementById('registerForm').style.display = 'block';
+                }
+            }
+        }
+
+        // לוגיקת הרשמה
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fullName = document.getElementById('regName').value;
+            const phone = document.getElementById('regPhone').value;
+            const password = document.getElementById('regPassword').value;
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fullName, phone, password })
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    alert("נרשמת בהצלחה! בבקשה התחבר.");
+                    switchAuthTab('login');
+                    document.getElementById('loginPhone').value = phone;
+                } else { 
+                    alert(data.error);
+                    if(data.code === 'already_exists') {
+                        switchAuthTab('login');
+                        document.getElementById('loginPhone').value = phone;
+                    }
+                }
+            } catch(err) { alert("שגיאת תקשורת"); }
+        });
+
+        // לוגיקת התחברות
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const phone = document.getElementById('loginPhone').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, password })
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    localStorage.setItem('sportMatchUserId', data.userId);
+                    localStorage.setItem('sportMatchUser', data.userName);
+                    myUserId = data.userId; myUsername = data.userName;
+                    showMainApp();
+                } else { 
+                    alert(data.error); 
+                    if(data.code === 'not_found') {
+                        switchAuthTab('register');
+                        document.getElementById('regPhone').value = phone;
+                    }
+                }
+            } catch(err) { alert("שגיאת תקשורת"); }
+        });
+
+        // לוגיקת איפוס סיסמה
+        document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const phone = document.getElementById('forgotPhone').value;
+            const newPassword = document.getElementById('forgotNewPassword').value;
+            try {
+                const res = await fetch('/api/reset-password', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, newPassword })
+                });
+                const data = await res.json();
+                alert(data.message || data.error);
+                if(res.ok) {
+                    switchAuthTab('login');
+                    document.getElementById('loginPhone').value = phone;
+                }
+            } catch(err) { alert("שגיאת תקשורת"); }
+        });
+
+        function logout() { localStorage.removeItem('sportMatchUserId'); localStorage.removeItem('sportMatchUser'); location.reload(); }
+
+        function showMainApp() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('welcomeMessage').innerText = `👋 אהלן ${myUsername}! מה נשחק היום?`;
+            setTimeout(() => { map.invalidateSize(); loadCourtsAndLocation(); loadGames(); }, 300);
+        }
+
+        // ==========================================
+        // שאר האפליקציה (כמו שהיה)
+        // ==========================================
+        let currentTimeMode = 'now'; let activeChatGameId = null; let chatPollingInterval = null;
+        function setTimeMode(mode) {
+            currentTimeMode = mode;
+            if (mode === 'now') {
+                document.getElementById('btnTimeNow').classList.add('active'); document.getElementById('btnTimeFuture').classList.remove('active'); document.getElementById('timePickerWrapper').style.display = 'none';
+            } else {
+                document.getElementById('btnTimeFuture').classList.add('active'); document.getElementById('btnTimeNow').classList.remove('active'); document.getElementById('timePickerWrapper').style.display = 'flex';
+                const now = new Date(); now.setHours(now.getHours() + 1);
+                document.getElementById('gameHour').value = String(now.getHours()).padStart(2, '0'); document.getElementById('gameMinute').value = String(now.getMinutes()).padStart(2, '0');
+            }
+        }
+        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+        const map = L.map('map').setView([31.9685, 34.7700], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        const basketballIcon = L.divIcon({ html: '<div style="font-size: 26px;">🏀</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
+        const footballIcon = L.divIcon({ html: '<div style="font-size: 26px;">⚽</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
+        let allCourts = []; let allGames = []; let userHasLocation = false; let selectedSportFilter = 'all'; 
+
+        function setSportFilter(sport) {
+            selectedSportFilter = sport;
+            document.getElementById('btnAll').className = `sport-btn ${sport === 'all' ? 'active' : ''}`;
+            document.getElementById('btnBasketball').className = `sport-btn ${sport === 'Basketball' ? 'active' : ''}`;
+            document.getElementById('btnFootball').className = `sport-btn ${sport === 'Football' ? 'active' : ''}`;
+            allCourts.forEach(court => {
+                const shouldShow = (selectedSportFilter === 'all' || court.SportType === selectedSportFilter);
+                if (shouldShow) { if (!map.hasLayer(court.marker)) map.addLayer(court.marker); } else { if (map.hasLayer(court.marker)) map.removeLayer(court.marker); }
+            });
+            populateDropdown(document.getElementById('searchBox').value.trim()); renderGamesList();
+        }
+
+        async function loadCourtsAndLocation() {
+            try {
+                const response = await fetch('/api/courts'); allCourts = await response.json();
+                allCourts.forEach(court => {
+                    const icon = court.SportType === 'Football' ? footballIcon : basketballIcon;
+                    const marker = L.marker([court.Latitude, court.Longitude], {icon: icon}); marker.bindPopup(`<b>${court.CourtName}</b>`); court.marker = marker; 
+                });
+                setSportFilter('all');
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((position) => {
+                        userHasLocation = true; map.setView([position.coords.latitude, position.coords.longitude], 14);
+                        L.marker([position.coords.latitude, position.coords.longitude]).addTo(map).bindPopup('📍 אתה כאן!');
+                        allCourts.forEach(c => c.distanceKm = (6371 * 2 * Math.atan2(Math.sqrt(Math.sin((c.Latitude - position.coords.latitude) * (Math.PI / 180) / 2) * Math.sin((c.Latitude - position.coords.latitude) * (Math.PI / 180) / 2) + Math.cos(position.coords.latitude * (Math.PI / 180)) * Math.cos(c.Latitude * (Math.PI / 180)) * Math.sin((c.Longitude - position.coords.longitude) * (Math.PI / 180) / 2) * Math.sin((c.Longitude - position.coords.longitude) * (Math.PI / 180) / 2)), Math.sqrt(1 - (Math.sin((c.Latitude - position.coords.latitude) * (Math.PI / 180) / 2) * Math.sin((c.Latitude - position.coords.latitude) * (Math.PI / 180) / 2) + Math.cos(position.coords.latitude * (Math.PI / 180)) * Math.cos(c.Latitude * (Math.PI / 180)) * Math.sin((c.Longitude - position.coords.longitude) * (Math.PI / 180) / 2) * Math.sin((c.Longitude - position.coords.longitude) * (Math.PI / 180) / 2))))));
+                        allCourts.sort((a, b) => a.distanceKm - b.distanceKm); populateDropdown('');
+                    }, () => populateDropdown(''));
+                } else { populateDropdown(''); }
+            } catch (err) {}
+        }
+
+        function populateDropdown(searchTerm) {
+            const courtSelect = document.getElementById('courtId'); courtSelect.innerHTML = '<option value="">-- בחר מגרש --</option>'; 
+            allCourts.filter(c => c.CourtName.includes(searchTerm) && (selectedSportFilter === 'all' || c.SportType === selectedSportFilter)).slice(0, 50).forEach(court => {
+                const option = document.createElement('option'); option.value = court.CourtID;
+                option.textContent = `${court.CourtName} ${court.SportType === 'Football' ? '⚽' : '🏀'} ${(userHasLocation && court.distanceKm !== undefined) ? `(${court.distanceKm.toFixed(1)} ק"מ)` : ''}`;
+                courtSelect.appendChild(option);
+            });
+        }
+        document.getElementById('searchBox').addEventListener('input', e => populateDropdown(e.target.value.trim()));
+
+        async function loadGames() {
+            try { const response = await fetch('/api/games'); allGames = await response.json(); renderGamesList(); } catch (error) {}
+        }
+
+        function renderGamesList() {
+            const container = document.getElementById('gamesList'); container.innerHTML = ''; 
+            const filtered = allGames.filter(g => { const c = allCourts.find(court => court.CourtName === g.CourtName); return c && (selectedSportFilter === 'all' || c.SportType === selectedSportFilter) && (!userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10)); });
+            if (filtered.length === 0) { container.innerHTML = '<p>אין משחקים פתוחים. פתח אחד!</p>'; return; }
+            filtered.forEach(game => {
+                const parts = game.StartTimeStr.split(/[- :]/); const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
+                const timeString = `${String(gameDate.getHours()).padStart(2, '0')}:${String(gameDate.getMinutes()).padStart(2, '0')}`;
+                const diffMins = Math.floor((gameDate - new Date()) / 60000);
+                const c = allCourts.find(court => court.CourtName === game.CourtName);
+                const card = document.createElement('div'); card.className = 'game-card';
+                card.innerHTML = `<div class="court-name">${c.SportType === 'Football' ? '⚽' : '🏀'} 📍 ${game.CourtName}</div><div class="detail"><strong>👤 יוצר:</strong> ${game.CreatorName}</div>${diffMins <= 30 ? `<div class="time-badge time-now">🟢 קורה עכשיו (ב-${timeString})</div>` : `<div class="time-badge time-future">🕰️ עתידי להיום (ב-${timeString})</div>`}<div class="detail" style="color: #3498db; font-size: 0.95em; margin-top: 5px;">${userHasLocation && c.distanceKm ? `(${c.distanceKm.toFixed(1)} ק"מ ממך)` : ''}</div><div class="badge">🔥 חסרים ${game.MissingPlayers} שחקנים!</div><div class="btn-group"><button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">🙋‍♂️ אני בא!</button><button class="chat-btn" onclick="openChat(${game.GameID}, '${game.CourtName}')">💬 צ'אט</button></div>`;
+                container.appendChild(card);
+            });
+        }
+
+        async function joinGame(gameId, courtName) {
+            try {
+                const response = await fetch(`/api/games/${gameId}/join`, { method: 'PUT' });
+                const data = await response.json();
+                if (response.ok) { alert(`הצטרפת בהצלחה! מעביר אותך לצ'אט...`); loadGames(); openChat(gameId, courtName); } else { alert(data.error); }
+            } catch (error) { alert('שגיאת תקשורת'); }
+        }
+
+        function openChat(gameId, courtName) {
+            activeChatGameId = gameId; document.getElementById('chatTitle').innerText = `💬 צ'אט: ${courtName}`; document.getElementById('chatModal').style.display = 'flex';
+            fetchChatMessages(); chatPollingInterval = setInterval(fetchChatMessages, 2000);
+        }
+        function closeChat() { document.getElementById('chatModal').style.display = 'none'; clearInterval(chatPollingInterval); activeChatGameId = null; }
+
+        async function fetchChatMessages() {
+            if (!activeChatGameId) return;
+            try {
+                const response = await fetch(`/api/games/${activeChatGameId}/chat`); const messages = await response.json();
+                const chatBox = document.getElementById('chatMessages'); chatBox.innerHTML = ''; 
+                if (messages.length === 0) { chatBox.innerHTML = '<p style="text-align:center; color:gray; margin-top:20px;">אין הודעות. תגיד שלום! 👋</p>'; return; }
+                messages.forEach(msg => {
+                    const isMe = msg.SenderName === myUsername; const msgDiv = document.createElement('div'); msgDiv.className = `message ${isMe ? 'msg-me' : 'msg-other'}`;
+                    msgDiv.innerHTML = `<span class="msg-sender">${isMe ? 'אני' : msg.SenderName}</span>${msg.MessageText}<span class="msg-time">${msg.SendTime.substring(0, 5)}</span>`; chatBox.appendChild(msgDiv);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (error) {}
+        }
+        async function sendChatMessage() {
+            const text = document.getElementById('chatInput').value.trim(); if (!text || !activeChatGameId) return; document.getElementById('chatInput').value = ''; 
+            try { await fetch(`/api/games/${activeChatGameId}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senderName: myUsername, messageText: text }) }); fetchChatMessages(); } catch (error) {}
+        }
+        function handleChatEnter(e) { if (e.key === 'Enter') sendChatMessage(); }
+
+        document.getElementById('newGameForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); 
+            const courtId = document.getElementById('courtId').value; const missingPlayers = document.getElementById('missingPlayers').value; let sqlStartTime; const now = new Date();
+            if (currentTimeMode === 'now') {
+                sqlStartTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+            } else {
+                const hStr = document.getElementById('gameHour').value; const mStr = document.getElementById('gameMinute').value; const gameTime = new Date(); gameTime.setHours(parseInt(hStr), parseInt(mStr), 0, 0);
+                if (gameTime < now && (now - gameTime) > 300000) { alert("❌ שגיאה: שעה לא הגיונית (כבר עברה)."); return; }
+                sqlStartTime = `${gameTime.getFullYear()}-${String(gameTime.getMonth() + 1).padStart(2, '0')}-${String(gameTime.getDate()).padStart(2, '0')} ${hStr}:${mStr}:00`;
+            }
+            try {
+                const response = await fetch('/api/games', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courtId: parseInt(courtId), creatorPlayerId: myUserId, missingPlayers: parseInt(missingPlayers), startTime: sqlStartTime }) });
+                if(response.ok) { document.getElementById('missingPlayers').value = ''; loadGames(); document.getElementById('whatsappModal').style.display = 'flex'; }
+            } catch (error) {}
+        });
+        function closeModal() { document.getElementById('whatsappModal').style.display = 'none'; }
+    </script>
+</body>
+</html>
