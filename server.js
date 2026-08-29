@@ -81,23 +81,21 @@ async function initDB() {
             )
         `);
 
-        // ==========================================
-        // עדכון טבלאות קימות לתמיכה בגילאים (מבלי למחוק מידע!)
-        // ==========================================
+        // עדכון טבלאות לתמיכה בגילאים
         await sql.query(`
             IF COL_LENGTH('Players', 'Age') IS NULL ALTER TABLE Players ADD Age INT DEFAULT 18;
             IF COL_LENGTH('Games', 'MinAge') IS NULL ALTER TABLE Games ADD MinAge INT DEFAULT 10;
             IF COL_LENGTH('Games', 'MaxAge') IS NULL ALTER TABLE Games ADD MaxAge INT DEFAULT 99;
         `);
 
-        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן (וכולל תמיכה בגילאים)!");
+        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן!");
     } catch (err) {
         console.error("DB Init Error:", err);
     }
 }
 initDB();
 
-// הרשמה - מקבל עכשיו גם גיל
+// הרשמה
 app.post('/api/register', async (req, res) => {
     const { fullName, phone, password, age } = req.body;
     try {
@@ -107,14 +105,14 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ code: 'already_exists', error: "המספר כבר רשום במערכת. מעביר אותך להתחברות..." });
         }
         const safeName = fullName.replace(/'/g, "''");
-        const playerAge = age || 18; // ברירת מחדל אם לא הוזן
+        const playerAge = age || 18; 
         
         await sql.query(`INSERT INTO Players (FullName, Phone, Password, Age) VALUES (N'${safeName}', '${phone}', '${password}', ${playerAge})`);
         res.status(201).json({ success: true, message: "נרשמת בהצלחה!" });
     } catch (err) { res.status(500).json({ error: "תקלה בהרשמה." }); }
 });
 
-// התחברות - מחזיר עכשיו גם את גיל המשתמש
+// התחברות
 app.post('/api/login', async (req, res) => {
     const { phone, password } = req.body;
     try {
@@ -127,7 +125,6 @@ app.post('/api/login', async (req, res) => {
         if (user.Password !== password) {
             return res.status(401).json({ code: 'wrong_password', error: "סיסמה שגויה." });
         }
-        // מחזירים לממשק גם את הגיל!
         res.json({ success: true, userId: user.PlayerID, userName: user.FullName, userAge: user.Age });
     } catch (err) { res.status(500).json({ error: "תקלה בהתחברות." }); }
 });
@@ -158,7 +155,7 @@ app.get('/api/courts', async (req, res) => {
     }
 });
 
-// משחקים - פתיחת משחק עם הגבלת גיל
+// פתיחת משחק
 app.post('/api/games', async (req, res) => {
     try {
         const { courtId, creatorPlayerId, missingPlayers, startTime, minAge, maxAge } = req.body;
@@ -172,12 +169,12 @@ app.post('/api/games', async (req, res) => {
     }
 });
 
-// משיכת משחקים - כולל טווח הגילאים
+// משיכת משחקים - פולט גם את ה-ID של היוצר כדי שנדע להציג לו את כפתורי השליטה
 app.get('/api/games', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
         const result = await sql.query(`
-            SELECT Games.GameID, Players.FullName AS CreatorName, Courts.CourtName, Courts.CourtNameEn, 
+            SELECT Games.GameID, Games.CreatorPlayerID, Players.FullName AS CreatorName, Courts.CourtName, Courts.CourtNameEn, 
                    CONVERT(varchar, Games.StartTime, 120) AS StartTimeStr, Games.MissingPlayers, Games.GameStatus, 
                    Games.MinAge, Games.MaxAge
             FROM Games JOIN Players ON Games.CreatorPlayerID = Players.PlayerID JOIN Courts ON Games.CourtID = Courts.CourtID
@@ -187,6 +184,7 @@ app.get('/api/games', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
 
+// הצטרפות למשחק
 app.put('/api/games/:id/join', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
@@ -198,6 +196,32 @@ app.put('/api/games/:id/join', async (req, res) => {
         await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = '${missing === 0 ? 'Full' : 'Open'}' WHERE GameID = ${req.params.id}`);
         res.json({ success: true, missingPlayers: missing });
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
+});
+
+// ==========================================
+// התוספת החדשה: עדכון סטטוס משחק (ביטול / מלא)
+// ==========================================
+app.put('/api/games/:id/status', async (req, res) => {
+    try {
+        const gameId = req.params.id;
+        const { userId, status } = req.body; 
+        
+        await sql.connect(sqlConfig);
+        
+        // בדיקת אבטחה: האם המשתמש הוא היוצר?
+        const check = await sql.query(`SELECT CreatorPlayerID FROM Games WHERE GameID = ${gameId}`);
+        if (check.recordset.length === 0) return res.status(404).json({ error: "המשחק לא נמצא." });
+        
+        if (check.recordset[0].CreatorPlayerID !== parseInt(userId)) {
+            return res.status(403).json({ error: "אין לך הרשאה! רק יוצר המשחק יכול לעדכן סטטוס." });
+        }
+        
+        await sql.query(`UPDATE Games SET GameStatus = '${status}' WHERE GameID = ${gameId}`);
+        res.json({ success: true, newStatus: status });
+    } catch (err) { 
+        console.error("שגיאה בעדכון סטטוס:", err);
+        res.status(500).json({ error: "תקלה בשרת" }); 
+    }
 });
 
 // צ'אט
