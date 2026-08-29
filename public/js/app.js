@@ -194,24 +194,30 @@ function renderGamesList(gamesToRender = allGames) {
     }
     
     filtered.forEach(game => {
-        const parts = game.StartTimeStr.split(/[- :]/); const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
+        const parts = game.StartTimeStr.split(/[- :]/); 
+        const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
+        
+        // יצירת מחרוזת תאריך, יום בשבוע ושעה מותאמת לשפה הנוכחית
+        const optionsDate = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
+        const formattedDate = gameDate.toLocaleDateString(currentLang === 'he' ? 'he-IL' : 'en-US', optionsDate);
         const timeString = `${String(gameDate.getHours()).padStart(2, '0')}:${String(gameDate.getMinutes()).padStart(2, '0')}`;
+        
         const diffMins = Math.floor((gameDate - new Date()) / 60000);
         const c = allCourts.find(court => court.CourtName === game.CourtName);
         const card = document.createElement('div'); card.className = 'game-card';
         
         let timeBadgeHtml = '';
         if (game.GameStatus === 'Cancelled') {
-            timeBadgeHtml = `<div class="time-badge" style="background:#e74c3c;color:white;">${t("cancelledGame")}</div>`;
+            timeBadgeHtml = `<div class="time-badge" style="background:#e74c3c;color:white;">${t("cancelledGame")} - ${formattedDate} (${timeString})</div>`;
         } else if (diffMins < -120) {
-            timeBadgeHtml = `<div class="time-badge" style="background:#95a5a6;color:white;">${t("pastGame").replace('{time}', timeString)}</div>`;
+            timeBadgeHtml = `<div class="time-badge" style="background:#95a5a6;color:white;">⚪ ${formattedDate} | ${timeString}</div>`;
         } else if (diffMins <= 30) {
-            timeBadgeHtml = `<div class="time-badge time-now">${t("happeningNow").replace('{time}', timeString)}</div>`;
+            timeBadgeHtml = `<div class="time-badge time-now">🟢 ${formattedDate} | ${timeString} (${t("happeningNow").replace('{time}', '')})</div>`;
         } else {
-            timeBadgeHtml = `<div class="time-badge time-future">${t("futureGame").replace('{time}', timeString)}</div>`;
+            timeBadgeHtml = `<div class="time-badge time-future">🕰️ ${formattedDate} | ${timeString}</div>`;
         }
 
-        const distanceHtml = userHasLocation && c.distanceKm ? `<div class="detail" style="color: #3498db; font-size: 0.95em; margin-top: 5px;">(${c.distanceKm.toFixed(1)} ${t("awayFromYou")})</div>` : '';
+        const distanceHtml = userHasLocation && c.distanceKm ? `<div class="detail" style="color: #3498db; font-size: 0.95em; margin-top: 5px;">(${c.distanceKm.toFixed(1)} ${t("distanceKm")})</div>` : '';
         const ageHtml = `<div class="detail" style="color: #8e44ad; font-weight: bold; font-size: 0.95em; margin-top: 5px;">🎯 ${t("agePlaceholder")}: ${game.MinAge} - ${game.MaxAge}</div>`;
         
         const isCreator = parseInt(myUserId) === game.CreatorPlayerID;
