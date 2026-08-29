@@ -71,7 +71,7 @@ function updateHeatmap() {
     const heatPoints = [];
     allGames.forEach(game => {
         const court = allCourts.find(c => c.CourtName === game.CourtName);
-        if (court && (!userHasLocation || (court.distanceKm !== undefined && court.distanceKm <= 10))) {
+        if (court && (!userHasLocation || (court.distanceKm !== undefined && court.distanceKm <= 10)) && game.GameStatus === 'Open') {
             const intensity = Math.min(game.MissingPlayers * 0.2, 1.0); 
             heatPoints.push([court.Latitude, court.Longitude, intensity]);
         }
@@ -81,8 +81,8 @@ function updateHeatmap() {
     }
 }
 
-// לוגיקת הסינון מתוקנת!
-function setSportFilter(filter) {
+// לוגיקת הסינון מעודכנת כך שכאשר לוחצים על "המשחקים שלי", המפה נשארת רגילה והרשימה נטענת מההיסטוריה
+async function setSportFilter(filter) {
     selectedSportFilter = filter;
     document.getElementById('btnAll').className = `sport-btn ${filter === 'all' ? 'active' : ''}`;
     document.getElementById('btnBasketball').className = `sport-btn ${filter === 'Basketball' ? 'active' : ''}`;
@@ -90,7 +90,6 @@ function setSportFilter(filter) {
     document.getElementById('btnMyGames').className = `sport-btn ${filter === 'my_games' ? 'active' : ''}`;
     
     allCourts.forEach(court => {
-        // אם הסינון הוא כדורסל או כדורגל, בדוק התאמה. אחרת (הכל או המשחקים שלי), הראה את כולם על המפה.
         const matchSport = (filter === 'all' || filter === 'my_games' || court.SportType === filter);
         const isCloseEnough = !userHasLocation || (court.distanceKm !== undefined && court.distanceKm <= 10);
         
@@ -100,8 +99,18 @@ function setSportFilter(filter) {
             if (map.hasLayer(court.marker)) map.removeLayer(court.marker); 
         }
     });
+    
     populateDropdown(document.getElementById('searchBox').value.trim()); 
-    renderGamesList();
+    
+    if (filter === 'my_games') {
+        try {
+            const response = await fetch(`/api/games/history/${myUserId}?t=` + Date.now());
+            const historyGames = await response.json();
+            renderGamesList(historyGames);
+        } catch (e) { console.error(e); }
+    } else {
+        loadGames(); 
+    }
 }
 window.setSportFilter = setSportFilter;
 
@@ -143,10 +152,7 @@ function populateDropdown(searchTerm) {
     courtSelect.innerHTML = `<option value="">${t("selectPlaceholder")}</option>`; 
     allCourts.filter(c => {
         const matchName = c.CourtName.includes(searchTerm) || (c.CourtNameEn && c.CourtNameEn.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        // תיקון הסינון ברשימה הנפתחת: הראה הכל אם הפילטר הוא 'all' או 'my_games'
         const matchSport = (selectedSportFilter === 'all' || selectedSportFilter === 'my_games' || c.SportType === selectedSportFilter);
-        
         const isCloseEnough = !userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10);
         return matchName && matchSport && isCloseEnough;
     }).slice(0, 50).forEach(court => {
@@ -162,30 +168,23 @@ async function loadGames() {
     try { 
         const response = await fetch('/api/games?t=' + Date.now()); 
         allGames = await response.json(); 
-        renderGamesList(); 
+        if (selectedSportFilter !== 'my_games') {
+            renderGamesList(allGames); 
+        }
     } catch (error) {}
 }
 window.loadGames = loadGames;
 
-function renderGamesList() {
+// פונקציית הרינדור תומכת כעת בהצגת היסטוריה עם תגים חכמים (עבר/עתיד/בוטל)
+function renderGamesList(gamesToRender = allGames) {
     updateHeatmap(); 
     const container = document.getElementById('gamesList'); container.innerHTML = ''; 
     
-    const filtered = allGames.filter(g => { 
+    const filtered = gamesToRender.filter(g => { 
         const c = allCourts.find(court => court.CourtName === g.CourtName); 
-        
-        // סינון לפי "המשחקים שלי"
-        if (selectedSportFilter === 'my_games') {
-            const isCreator = parseInt(myUserId) === g.CreatorPlayerID;
-            const joinedPlayers = g.JoinedPlayersStr ? g.JoinedPlayersStr.split(',').filter(id => id !== '') : [];
-            const hasJoined = joinedPlayers.includes(String(myUserId));
-            if (!isCreator && !hasJoined) return false;
-        } 
-        // סינון רגיל של ספורט (אם זה לא 'all' ולא 'my_games')
-        else if (selectedSportFilter !== 'all') {
+        if (selectedSportFilter !== 'all' && selectedSportFilter !== 'my_games') {
             if (c.SportType !== selectedSportFilter) return false;
         }
-        
         return c && (!userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10)); 
     });
     
@@ -201,7 +200,17 @@ function renderGamesList() {
         const c = allCourts.find(court => court.CourtName === game.CourtName);
         const card = document.createElement('div'); card.className = 'game-card';
         
-        const timeBadgeHtml = diffMins <= 30 ? `<div class="time-badge time-now">${t("happeningNow").replace('{time}', timeString)}</div>` : `<div class="time-badge time-future">${t("futureGame").replace('{time}', timeString)}</div>`;
+        let timeBadgeHtml = '';
+        if (game.GameStatus === 'Cancelled') {
+            timeBadgeHtml = `<div class="time-badge" style="background:#e74c3c;color:white;">${t("cancelledGame")}</div>`;
+        } else if (diffMins < -120) {
+            timeBadgeHtml = `<div class="time-badge" style="background:#95a5a6;color:white;">${t("pastGame").replace('{time}', timeString)}</div>`;
+        } else if (diffMins <= 30) {
+            timeBadgeHtml = `<div class="time-badge time-now">${t("happeningNow").replace('{time}', timeString)}</div>`;
+        } else {
+            timeBadgeHtml = `<div class="time-badge time-future">${t("futureGame").replace('{time}', timeString)}</div>`;
+        }
+
         const distanceHtml = userHasLocation && c.distanceKm ? `<div class="detail" style="color: #3498db; font-size: 0.95em; margin-top: 5px;">(${c.distanceKm.toFixed(1)} ${t("awayFromYou")})</div>` : '';
         const ageHtml = `<div class="detail" style="color: #8e44ad; font-weight: bold; font-size: 0.95em; margin-top: 5px;">🎯 ${t("agePlaceholder")}: ${game.MinAge} - ${game.MaxAge}</div>`;
         
@@ -210,7 +219,7 @@ function renderGamesList() {
         const hasJoined = joinedPlayers.includes(String(myUserId));
         
         let joinControlsHtml = '';
-        if (!isCreator) {
+        if (!isCreator && game.GameStatus !== 'Cancelled' && diffMins >= -120) {
             if (hasJoined) {
                 joinControlsHtml = `<button class="join-btn" style="background-color: #95a5a6;" onclick="leaveGame(${game.GameID})">${t("leaveGameBtn")}</button>`;
             } else {
@@ -219,7 +228,7 @@ function renderGamesList() {
         }
 
         let creatorControlsHtml = '';
-        if (isCreator) {
+        if (isCreator && game.GameStatus === 'Open' && diffMins >= -120) {
             creatorControlsHtml = `
             <div class="btn-group" style="margin-top: 10px;">
                 <button onclick="updateGameStatus(${game.GameID}, 'Cancelled')" style="background-color: #e74c3c; color: white; padding: 8px; border: none; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold;">${t("cancelGameBtn")}</button>
@@ -256,7 +265,11 @@ async function leaveGame(gameId) {
     try {
         const response = await fetch(`/api/games/${gameId}/leave`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: myUserId }) });
         const data = await response.json();
-        if (response.ok) { alert(t("leftSuccess")); loadGames(); } else { alert(data.error); }
+        if (response.ok) { 
+            alert(t("leftSuccess")); 
+            if(selectedSportFilter === 'my_games') setSportFilter('my_games'); 
+            else loadGames(); 
+        } else { alert(data.error); }
     } catch (error) { alert(t("netError")); }
 }
 window.leaveGame = leaveGame;
@@ -267,7 +280,11 @@ async function updateGameStatus(gameId, status) {
     try {
         const response = await fetch(`/api/games/${gameId}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: myUserId, status: status }) });
         const data = await response.json();
-        if (response.ok) { alert(status === 'Cancelled' ? t("gameCancelledStatus") : t("gameFullStatus")); loadGames(); } else { alert(data.error || t("serverError")); }
+        if (response.ok) { 
+            alert(status === 'Cancelled' ? t("gameCancelledStatus") : t("gameFullStatus")); 
+            if(selectedSportFilter === 'my_games') setSportFilter('my_games'); 
+            else loadGames(); 
+        } else { alert(data.error || t("serverError")); }
     } catch (error) { alert(t("netError")); }
 }
 window.updateGameStatus = updateGameStatus;
