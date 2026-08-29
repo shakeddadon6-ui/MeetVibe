@@ -37,6 +37,10 @@
             <form id="registerForm" class="auth-form" style="display: none;">
                 <input type="text" id="regName" placeholder="שם מלא" data-i18n-placeholder="namePlaceholder" required>
                 <input type="tel" id="regPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
+                
+                <!-- השדה החדש לגיל! -->
+                <input type="number" id="regAge" placeholder="גיל" data-i18n-placeholder="agePlaceholder" min="10" max="99" required>
+                
                 <input type="password" id="regPassword" placeholder="בחר סיסמה" data-i18n-placeholder="choosePasswordPlaceholder" required>
                 <button type="submit" data-i18n="registerBtn">צור משתמש חדש</button>
             </form>
@@ -79,6 +83,12 @@
                 <div id="selectedAddressDisplay"></div>
                 
                 <input type="number" id="missingPlayers" class="app-input" placeholder="כמה שחקנים חסרים?" data-i18n-placeholder="missingPlayersPlaceholder" min="1" max="10">
+                
+                <!-- שדות חדשים לטווח גילאים -->
+                <div style="display: flex; gap: 10px; width: 90%; margin: 10px auto;">
+                    <input type="number" id="minAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מינימלי" data-i18n-placeholder="minAgePlaceholder" min="10" max="99">
+                    <input type="number" id="maxAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מקסימלי" data-i18n-placeholder="maxAgePlaceholder" min="10" max="99">
+                </div>
                 
                 <div class="time-toggle-container">
                     <button type="button" id="btnTimeNow" class="time-btn active" onclick="setTimeMode('now')" data-i18n="btnNow">⚡ עכשיו</button>
