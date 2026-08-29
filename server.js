@@ -171,7 +171,7 @@ app.post('/api/games', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// משיכת משחקים - פולט גם רשימה (STRING) של כל ה-IDs של האנשים שנרשמו למשחק!
+// משיכת משחקים רגילה (רק פעילים)
 app.get('/api/games', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
@@ -185,6 +185,26 @@ app.get('/api/games', async (req, res) => {
         `);
         res.json(result.recordset);
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
+});
+
+// ==========================================
+// התוספת החדשה: משיכת היסטוריה אישית
+// ==========================================
+app.get('/api/games/history/:userId', async (req, res) => {
+    try {
+        await sql.connect(sqlConfig);
+        const userId = parseInt(req.params.userId);
+        const result = await sql.query(`
+            SELECT Games.GameID, Games.CreatorPlayerID, Players.FullName AS CreatorName, Courts.CourtName, Courts.CourtNameEn, 
+                   CONVERT(varchar, Games.StartTime, 120) AS StartTimeStr, Games.MissingPlayers, Games.GameStatus, 
+                   Games.MinAge, Games.MaxAge,
+                   ISNULL((SELECT CAST(PlayerID AS VARCHAR) + ',' FROM GameParticipants WHERE GameID = Games.GameID FOR XML PATH('')), '') AS JoinedPlayersStr
+            FROM Games JOIN Players ON Games.CreatorPlayerID = Players.PlayerID JOIN Courts ON Games.CourtID = Courts.CourtID
+            WHERE Games.CreatorPlayerID = ${userId} OR Games.GameID IN (SELECT GameID FROM GameParticipants WHERE PlayerID = ${userId})
+            ORDER BY Games.StartTime DESC
+        `);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: "תקלה במשיכת היסטוריה" }); }
 });
 
 // הצטרפות חכמה למשחק
@@ -223,7 +243,7 @@ app.put('/api/games/:id/join', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה בהצטרפות" }); }
 });
 
-// נתיב חדש! עזיבת משחק
+// עזיבת משחק
 app.put('/api/games/:id/leave', async (req, res) => {
     try {
         const gameId = req.params.id;
