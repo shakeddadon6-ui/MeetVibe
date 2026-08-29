@@ -348,3 +348,40 @@ function showToast(message) {
     }, 4000);
 }
 window.showToast = showToast;
+
+// ==========================================
+// מנגנון בדיקת התראות ברקע (Polling)
+// ==========================================
+async function checkBackgroundNotifications() {
+    if (!myUserId) return;
+    try {
+        // משיכת רשימת המשחקים שהמשתמש קשור אליהם
+        const response = await fetch(`/api/games/history/${myUserId}?t=` + Date.now());
+        const myGames = await response.json();
+        
+        // מעבר על המשחקים ובדיקת הודעות מערכת אחרונות
+        for (const game of myGames) {
+            if (game.GameStatus !== 'Open') continue;
+            const chatRes = await fetch(`/api/games/${game.GameID}/chat?t=` + Date.now());
+            const messages = await chatRes.json();
+            
+            if (messages && messages.length > 0) {
+                const lastMsg = messages[messages.length - 1];
+                // אם ההודעה האחרונה היא הודעת מערכת והיא חדשה יחסית (נשלחה בדקה האחרונה)
+                if (lastMsg.SenderName === 'מערכת' && lastMsg.MessageText.includes('הצטרף')) {
+                    const msgKey = `notified_game_${game.GameID}_${messages.length}`;
+                    // מוודא שלא הצגנו את ההתראה הזו כבר
+                    if (!localStorage.getItem(msgKey)) {
+                        localStorage.setItem(msgKey, 'true');
+                        showToast(lastMsg.MessageText);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        // שגיאות ברקע מתעלמים כדי לא להציק למשתמש
+    }
+}
+
+// הפעלת הבדיקה ברקע כל 6 שניות
+setInterval(checkBackgroundNotifications, 6000);
