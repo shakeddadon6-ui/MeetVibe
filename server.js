@@ -161,6 +161,21 @@ app.get('/api/courts', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
 
+// יצירת משחק חדש
+app.post('/api/games', async (req, res) => {
+    const { courtId, creatorPlayerId, missingPlayers, startTime, minAge, maxAge } = req.body;
+    try {
+        await sql.connect(sqlConfig);
+        await sql.query(`
+            INSERT INTO Games (CourtID, CreatorPlayerID, StartTime, MissingPlayers, GameStatus, MinAge, MaxAge) 
+            VALUES (${courtId}, ${creatorPlayerId}, '${startTime}', ${missingPlayers}, 'Open', ${minAge}, ${maxAge})
+        `);
+        res.status(201).json({ success: true, message: "המשחק נפתח בהצלחה!" });
+    } catch (err) { 
+        res.status(500).json({ error: "תקלה בפתיחת המשחק." }); 
+    }
+});
+
 
 
 // משיכת משחקים רגילה (רק פעילים)
