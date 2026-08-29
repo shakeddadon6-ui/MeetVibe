@@ -343,12 +343,12 @@ function showToast(message) {
     toast.innerText = message;
     toast.classList.add('show');
     
-    // הפעלת אפקט סאונד עדין להתראה
+    // הפעלת סאונד עדין, רך ונעים יותר (Pop קצרצר)
     try {
-        const sound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        sound.volume = 0.4; // עוצמת שמע נעימה ולא צורמת
+        const sound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+        sound.volume = 0.2; // עוצמה שקטה ועדינה
         sound.play().catch(e => {
-            // דפדפנים מסוימים חוסמים אודיו אוטומטי לפני אינטראקציה ראשונה של המשתמש
+            // התעלמות מחסימות אוטומטיות של הדפדפן
         });
     } catch (err) {}
     
