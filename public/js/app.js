@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ app.js - מנגנון הליבה: מפה, משחקים וסינון מתורגם!
+// קובץ app.js - מנגנון הליבה (כולל גילאים ושבירת מטמון)
 // ==========================================
 
 let myUserId = localStorage.getItem('sportMatchUserId');
@@ -55,12 +55,10 @@ function updateMapLanguage(lang) {
     if (currentTileLayer) { map.removeLayer(currentTileLayer); }
     
     if (lang === 'en') {
-        // מפה בינלאומית באנגלית בלבד
         currentTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri'
         });
     } else {
-        // המפה הרגילה בעברית
         currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap'
         });
@@ -124,7 +122,6 @@ function calcDistanceKm(lat1, lon1, lat2, lon2) {
 
 async function loadCourtsAndLocation() {
     try {
-        // תוספת קריטית! שבירת מטמון (Date.now) כדי שהדפדפן תמיד ימשוך נתונים עדכניים
         const response = await fetch('/api/courts?t=' + Date.now()); 
         allCourts = await response.json();
         allCourts.forEach(court => {
@@ -167,7 +164,6 @@ document.getElementById('searchBox').addEventListener('input', e => populateDrop
 
 async function loadGames() {
     try { 
-        // תוספת קריטית גם למשחקים!
         const response = await fetch('/api/games?t=' + Date.now()); 
         allGames = await response.json(); 
         renderGamesList(); 
@@ -198,7 +194,19 @@ function renderGamesList() {
         const timeBadgeHtml = diffMins <= 30 ? `<div class="time-badge time-now">${t("happeningNow").replace('{time}', timeString)}</div>` : `<div class="time-badge time-future">${t("futureGame").replace('{time}', timeString)}</div>`;
         const distanceHtml = userHasLocation && c.distanceKm ? `<div class="detail" style="color: #3498db; font-size: 0.95em; margin-top: 5px;">(${c.distanceKm.toFixed(1)} ${t("awayFromYou")})</div>` : '';
         
-        card.innerHTML = `<div class="court-name">${c.SportType === 'Football' ? '⚽' : '🏀'} 📍 ${getDisplayCourtName(c)}</div><div class="detail"><strong>${t("creator")}</strong> ${game.CreatorName}</div>${timeBadgeHtml}${distanceHtml}<div class="badge">${t("missingBadge").replace('{count}', game.MissingPlayers)}</div><div class="btn-group"><button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">${t("joinBtn")}</button><button class="chat-btn" onclick="openChat(${game.GameID}, '${game.CourtName}')">${t("chatBtn")}</button></div>`;
+        // התוספת החדשה להצגת טווח הגילאים
+        const ageHtml = `<div class="detail" style="color: #8e44ad; font-weight: bold; font-size: 0.95em; margin-top: 5px;">🎯 ${t("agePlaceholder")}: ${game.MinAge} - ${game.MaxAge}</div>`;
+        
+        card.innerHTML = `<div class="court-name">${c.SportType === 'Football' ? '⚽' : '🏀'} 📍 ${getDisplayCourtName(c)}</div>
+                          <div class="detail"><strong>${t("creator")}</strong> ${game.CreatorName}</div>
+                          ${timeBadgeHtml}
+                          ${distanceHtml}
+                          ${ageHtml}
+                          <div class="badge">${t("missingBadge").replace('{count}', game.MissingPlayers)}</div>
+                          <div class="btn-group">
+                              <button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">${t("joinBtn")}</button>
+                              <button class="chat-btn" onclick="openChat(${game.GameID}, '${game.CourtName}')">${t("chatBtn")}</button>
+                          </div>`;
         container.appendChild(card);
     });
 }
@@ -208,7 +216,13 @@ async function joinGame(gameId, courtName) {
     try {
         const response = await fetch(`/api/games/${gameId}/join`, { method: 'PUT' });
         const data = await response.json();
-        if (response.ok) { alert(t("joinedSuccess")); loadGames(); openChat(gameId, courtName); } else { alert(data.error); }
+        if (response.ok) { 
+            alert(t("joinedSuccess")); 
+            loadGames(); 
+            openChat(gameId, courtName); 
+        } else { 
+            alert(data.error); 
+        }
     } catch (error) { alert(t("netError")); }
 }
 window.joinGame = joinGame;
@@ -217,8 +231,13 @@ async function createNewGame() {
     const courtId = document.getElementById('courtId').value; 
     const missingPlayers = document.getElementById('missingPlayers').value; 
     
+    // משיכת נתוני הגיל מהטופס
+    const minAgeVal = parseInt(document.getElementById('minAge').value) || 10;
+    const maxAgeVal = parseInt(document.getElementById('maxAge').value) || 99;
+    
     if (!courtId) { alert(t("selectCourtAlert")); return; }
     if (!missingPlayers || missingPlayers < 1) { alert(t("missingPlayersAlert")); return; }
+    if (minAgeVal > maxAgeVal) { alert("הגיל המינימלי לא יכול להיות גדול מהמקסימלי."); return; }
 
     let sqlStartTime; const now = new Date();
     if (currentTimeMode === 'now') {
@@ -233,9 +252,28 @@ async function createNewGame() {
         const submitBtn = document.querySelector('.submit-btn');
         submitBtn.innerText = t("creatingGame"); submitBtn.disabled = true; 
         const creatorId = parseInt(myUserId);
-        const response = await fetch('/api/games', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courtId: parseInt(courtId), creatorPlayerId: creatorId, missingPlayers: parseInt(missingPlayers), startTime: sqlStartTime }) });
         
-        if(response.ok) { document.getElementById('missingPlayers').value = ''; loadGames(); document.getElementById('whatsappModal').style.display = 'flex'; } 
+        // שליחת הגילאים לשרת!
+        const response = await fetch('/api/games', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ 
+                courtId: parseInt(courtId), 
+                creatorPlayerId: creatorId, 
+                missingPlayers: parseInt(missingPlayers), 
+                startTime: sqlStartTime,
+                minAge: minAgeVal,
+                maxAge: maxAgeVal
+            }) 
+        });
+        
+        if(response.ok) { 
+            document.getElementById('missingPlayers').value = ''; 
+            document.getElementById('minAge').value = ''; 
+            document.getElementById('maxAge').value = ''; 
+            loadGames(); 
+            document.getElementById('whatsappModal').style.display = 'flex'; 
+        } 
         else { const data = await response.json(); alert(t("serverError") + (data.error || "")); }
         
         submitBtn.innerText = t("submitGameBtn"); submitBtn.disabled = false;
