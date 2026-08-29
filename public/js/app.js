@@ -343,6 +343,15 @@ function showToast(message) {
     toast.innerText = message;
     toast.classList.add('show');
     
+    // הפעלת אפקט סאונד עדין להתראה
+    try {
+        const sound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        sound.volume = 0.4; // עוצמת שמע נעימה ולא צורמת
+        sound.play().catch(e => {
+            // דפדפנים מסוימים חוסמים אודיו אוטומטי לפני אינטראקציה ראשונה של המשתמש
+        });
+    } catch (err) {}
+    
     setTimeout(() => {
         toast.classList.remove('show');
     }, 4000);
