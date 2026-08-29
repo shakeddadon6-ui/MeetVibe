@@ -350,29 +350,44 @@ function showToast(message) {
 window.showToast = showToast;
 
 // ==========================================
-// מנגנון בדיקת התראות מהיר ברקע (Real-time Polling)
+// מנגנון בדיקת התראות ועדכונים מהיר ברקע (Real-time Sync)
 // ==========================================
+let lastKnownGamesCount = 0;
+
 async function checkBackgroundNotifications() {
     if (!myUserId) return;
     try {
-        // משיכת רשימת המשחקים והתראות מעודכנות מיד
+        // 1. בדיקת משחקים חדשים שנוספו במערכת (כדי שכולם יראו משחק חדש מיד)
+        const allGamesRes = await fetch('/api/games?t=' + Date.now());
+        const currentGames = await allGamesRes.json();
+        
+        if (lastKnownGamesCount > 0 && currentGames.length > lastKnownGamesCount) {
+            showToast("🔥 משחק חדש נפתח במפה!");
+            if (typeof loadGames === 'function' && selectedSportFilter !== 'my_games') {
+                loadGames();
+            }
+        }
+        lastKnownGamesCount = currentGames.length;
+
+        // 2. בדיקת הודעות מערכת (הצטרפות, עזיבה, ביטול משחק) במשחקים שהמשתמש שייך אליהם
         const response = await fetch(`/api/games/history/${myUserId}?t=` + Date.now());
         const myGames = await response.json();
         
         for (const game of myGames) {
-            if (game.GameStatus !== 'Open') continue;
             const chatRes = await fetch(`/api/games/${game.GameID}/chat?t=` + Date.now());
             const messages = await chatRes.json();
             
             if (messages && messages.length > 0) {
                 const lastMsg = messages[messages.length - 1];
-                if (lastMsg.SenderName === 'מערכת' && lastMsg.MessageText.includes('הצטרף')) {
+                
+                // תופס כל הודעת מערכת (הצטרפות, עזיבה, ביטול)
+                if (lastMsg.SenderName === 'מערכת') {
                     const msgKey = `notified_msg_${game.GameID}_${messages.length}`;
                     if (!localStorage.getItem(msgKey)) {
                         localStorage.setItem(msgKey, 'true');
                         showToast(lastMsg.MessageText);
                         
-                        // רענון אוטומטי של הרשימה והמפה מיד כשמתקבלת התראה
+                        // רענון אוטומטי של הרשימה והמפה מיד
                         if (typeof loadGames === 'function' && selectedSportFilter !== 'my_games') {
                             loadGames();
                         } else if (selectedSportFilter === 'my_games') {
@@ -387,5 +402,5 @@ async function checkBackgroundNotifications() {
     }
 }
 
-// בדיקה מהירה כל שנייה וחצי (1500 מילישניע) לקבלת תגובה מיידית!
+// בדיקה מהירה כל 1.5 שניות לקבלת תגובה מיידית לכל אירוע!
 setInterval(checkBackgroundNotifications, 1500);
