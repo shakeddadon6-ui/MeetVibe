@@ -8,6 +8,10 @@ const translations = {
     he: {
         appTitle: "SportMatch", loginTab: "התחברות", registerTab: "הרשמה",
         phonePlaceholder: "מספר טלפון", passwordPlaceholder: "סיסמה", namePlaceholder: "שם מלא", choosePasswordPlaceholder: "בחר סיסמה", newPasswordPlaceholder: "סיסמה חדשה",
+        
+        // תוספות גיל למילון
+        agePlaceholder: "גיל", minAgePlaceholder: "גיל מינימלי", maxAgePlaceholder: "גיל מקסימלי",
+        
         loginBtn: "היכנס למגרש", registerBtn: "צור משתמש חדש", resetTitle: "איפוס סיסמה", updatePasswordBtn: "עדכן סיסמה",
         forgotPassword: "שכחתי סיסמה 🤔", backToLogin: "חזור להתחברות",
         welcome: "👋 אהלן {name}! מה נשחק היום?",
@@ -26,7 +30,7 @@ const translations = {
         youAreHere: "📍 אתה כאן!", distanceKm: 'ק"מ', awayFromYou: 'ק"מ ממך', happeningNow: '🟢 קורה עכשיו (ב-{time})', futureGame: '🕰️ עתידי להיום (ב-{time})',
         chatMe: "אני", chatEmpty: "אין הודעות. תגיד שלום! 👋",
         
-        // התראות התחברות (התוספת החדשה!)
+        // התראות התחברות
         authSuccess: "נרשמת בהצלחה! בבקשה התחבר.", loginError: "תקלה בהתחברות.",
         already_exists: "המספר כבר רשום במערכת. מעביר אותך להתחברות...",
         not_found: "המספר לא קיים במערכת. מעביר אותך להרשמה...",
@@ -37,6 +41,10 @@ const translations = {
     en: {
         appTitle: "SportMatch", loginTab: "Login", registerTab: "Register",
         phonePlaceholder: "Phone Number", passwordPlaceholder: "Password", namePlaceholder: "Full Name", choosePasswordPlaceholder: "Choose Password", newPasswordPlaceholder: "New Password",
+        
+        // Age additions to dictionary
+        agePlaceholder: "Age", minAgePlaceholder: "Min Age", maxAgePlaceholder: "Max Age",
+        
         loginBtn: "Enter Court", registerBtn: "Create Account", resetTitle: "Reset Password", updatePasswordBtn: "Update Password",
         forgotPassword: "Forgot password? 🤔", backToLogin: "Back to Login",
         welcome: "👋 Hey {name}! What are we playing today?",
@@ -55,7 +63,7 @@ const translations = {
         youAreHere: "📍 You are here!", distanceKm: 'km', awayFromYou: 'km away', happeningNow: '🟢 Happening now (at {time})', futureGame: '🕰️ Future today (at {time})',
         chatMe: "Me", chatEmpty: "No messages yet. Say hi! 👋",
         
-        // Auth alerts (The new addition!)
+        // Auth alerts
         authSuccess: "Registered successfully! Please login.", loginError: "Login error.",
         already_exists: "Phone number already registered. Redirecting to login...",
         not_found: "Phone number not found. Redirecting to registration...",
