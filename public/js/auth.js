@@ -29,10 +29,14 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     e.preventDefault();
     const fullName = document.getElementById('regName').value; 
     const phone = document.getElementById('regPhone').value; 
+    const age = document.getElementById('regAge').value; // משיכת הגיל מהטופס
     const password = document.getElementById('regPassword').value;
     try {
         const res = await fetch('/api/register', { 
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fullName, phone, password }) 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            // הוספת הגיל לשליחה לשרת
+            body: JSON.stringify({ fullName, phone, password, age: parseInt(age) }) 
         });
         const data = await res.json();
         if(res.ok) { 
@@ -40,7 +44,6 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
             switchAuthTab('login'); 
             document.getElementById('loginPhone').value = phone; 
         } else { 
-            // שימוש במילון לפי קוד השגיאה
             alert(data.code ? t(data.code) : data.error); 
             if(data.code === 'already_exists') { 
                 switchAuthTab('login'); 
@@ -62,11 +65,12 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         if(res.ok) { 
             localStorage.setItem('sportMatchUserId', data.userId); 
             localStorage.setItem('sportMatchUser', data.userName); 
+            localStorage.setItem('sportMatchUserAge', data.userAge); // שמירת הגיל בזיכרון!
+            
             myUserId = data.userId; 
             myUsername = data.userName; 
             showMainApp(); 
         } else { 
-            // שימוש במילון לפי קוד השגיאה
             alert(data.code ? t(data.code) : data.error); 
             if(data.code === 'not_found') { 
                 switchAuthTab('register'); 
@@ -87,11 +91,11 @@ document.getElementById('forgotForm').addEventListener('submit', async (e) => {
         const data = await res.json();
         
         if(res.ok) {
-            alert(t("resetSuccess")); // תרגום איפוס בהצלחה
+            alert(t("resetSuccess")); 
             switchAuthTab('login');
             document.getElementById('loginPhone').value = phone;
         } else {
-            alert(t("resetNotFound")); // תרגום מספר לא קיים
+            alert(t("resetNotFound")); 
         }
     } catch(err) { alert(t("netError")); }
 });
@@ -99,6 +103,7 @@ document.getElementById('forgotForm').addEventListener('submit', async (e) => {
 function logout() { 
     localStorage.removeItem('sportMatchUserId'); 
     localStorage.removeItem('sportMatchUser'); 
+    localStorage.removeItem('sportMatchUserAge'); // ניקוי הגיל בהתנתקות
     location.reload(); 
 }
 window.logout = logout;
