@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// חיבור לשרת הענן של Somee עם הסיסמה שלך!
+// חיבור לשרת הענן של Somee
 const sqlConfig = {
     server: 'SportMatchDB.mssql.somee.com', 
     database: 'SportMatchDB',
@@ -22,7 +22,7 @@ const sqlConfig = {
     }
 };
 
-// יצירת טבלאות אוטומטית בענן
+// יצירת טבלאות ושדרוגן אוטומטית בענן
 async function initDB() {
     try {
         await sql.connect(sqlConfig);
@@ -53,6 +53,7 @@ async function initDB() {
                 )
             END
         `);
+        
         // 3. טבלת משחקים
         await sql.query(`
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Games' and xtype='U')
@@ -68,8 +69,6 @@ async function initDB() {
             END
         `);
 
-    
-
         // 4. טבלת הודעות צ'אט
         await sql.query(`
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='GameMessages' and xtype='U')
@@ -81,16 +80,26 @@ async function initDB() {
                 SentAt DATETIME DEFAULT GETDATE()
             )
         `);
-        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן של Somee!");
+
+        // ==========================================
+        // עדכון טבלאות קימות לתמיכה בגילאים (מבלי למחוק מידע!)
+        // ==========================================
+        await sql.query(`
+            IF COL_LENGTH('Players', 'Age') IS NULL ALTER TABLE Players ADD Age INT DEFAULT 18;
+            IF COL_LENGTH('Games', 'MinAge') IS NULL ALTER TABLE Games ADD MinAge INT DEFAULT 10;
+            IF COL_LENGTH('Games', 'MaxAge') IS NULL ALTER TABLE Games ADD MaxAge INT DEFAULT 99;
+        `);
+
+        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן (וכולל תמיכה בגילאים)!");
     } catch (err) {
         console.error("DB Init Error:", err);
     }
 }
 initDB();
 
-// הרשמה
+// הרשמה - מקבל עכשיו גם גיל
 app.post('/api/register', async (req, res) => {
-    const { fullName, phone, password } = req.body;
+    const { fullName, phone, password, age } = req.body;
     try {
         await sql.connect(sqlConfig);
         const checkUser = await sql.query(`SELECT PlayerID FROM Players WHERE Phone = '${phone}'`);
@@ -98,17 +107,19 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ code: 'already_exists', error: "המספר כבר רשום במערכת. מעביר אותך להתחברות..." });
         }
         const safeName = fullName.replace(/'/g, "''");
-        await sql.query(`INSERT INTO Players (FullName, Phone, Password) VALUES (N'${safeName}', '${phone}', '${password}')`);
+        const playerAge = age || 18; // ברירת מחדל אם לא הוזן
+        
+        await sql.query(`INSERT INTO Players (FullName, Phone, Password, Age) VALUES (N'${safeName}', '${phone}', '${password}', ${playerAge})`);
         res.status(201).json({ success: true, message: "נרשמת בהצלחה!" });
     } catch (err) { res.status(500).json({ error: "תקלה בהרשמה." }); }
 });
 
-// התחברות
+// התחברות - מחזיר עכשיו גם את גיל המשתמש
 app.post('/api/login', async (req, res) => {
     const { phone, password } = req.body;
     try {
         await sql.connect(sqlConfig);
-        const checkUser = await sql.query(`SELECT PlayerID, FullName, Password FROM Players WHERE Phone = '${phone}'`);
+        const checkUser = await sql.query(`SELECT PlayerID, FullName, Password, Age FROM Players WHERE Phone = '${phone}'`);
         if (checkUser.recordset.length === 0) {
             return res.status(404).json({ code: 'not_found', error: "המספר לא קיים במערכת." });
         }
@@ -116,7 +127,8 @@ app.post('/api/login', async (req, res) => {
         if (user.Password !== password) {
             return res.status(401).json({ code: 'wrong_password', error: "סיסמה שגויה." });
         }
-        res.json({ success: true, userId: user.PlayerID, userName: user.FullName });
+        // מחזירים לממשק גם את הגיל!
+        res.json({ success: true, userId: user.PlayerID, userName: user.FullName, userAge: user.Age });
     } catch (err) { res.status(500).json({ error: "תקלה בהתחברות." }); }
 });
 
@@ -134,11 +146,10 @@ app.post('/api/reset-password', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה באיפוס סיסמה." }); }
 });
 
-// מגרשים - תוקן כדי לשלוף גם את השם באנגלית!
+// מגרשים
 app.get('/api/courts', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
-        // שינוי: הוספנו את CourtNameEn לשליפה
         const result = await sql.query(`SELECT CourtID, CourtName, CourtNameEn, Latitude, Longitude, SportType FROM Courts`);
         res.json(result.recordset);
     } catch (err) { 
@@ -147,12 +158,13 @@ app.get('/api/courts', async (req, res) => {
     }
 });
 
-// משחקים
+// משחקים - פתיחת משחק עם הגבלת גיל
 app.post('/api/games', async (req, res) => {
     try {
-        const { courtId, creatorPlayerId, missingPlayers, startTime } = req.body;
+        const { courtId, creatorPlayerId, missingPlayers, startTime, minAge, maxAge } = req.body;
         await sql.connect(sqlConfig);
-        await sql.query(`INSERT INTO Games (CourtID, CreatorPlayerID, StartTime, MissingPlayers, GameStatus) VALUES (${courtId}, ${creatorPlayerId}, '${startTime}', ${missingPlayers}, 'Open');`);
+        await sql.query(`INSERT INTO Games (CourtID, CreatorPlayerID, StartTime, MissingPlayers, GameStatus, MinAge, MaxAge) 
+                         VALUES (${courtId}, ${creatorPlayerId}, '${startTime}', ${missingPlayers}, 'Open', ${minAge || 10}, ${maxAge || 99});`);
         res.status(201).json({ success: true });
     } catch (err) { 
         console.error("❌ שגיאה בפתיחת משחק:", err);
@@ -160,12 +172,14 @@ app.post('/api/games', async (req, res) => {
     }
 });
 
+// משיכת משחקים - כולל טווח הגילאים
 app.get('/api/games', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
-        // שינוי: הוספנו את Courts.CourtNameEn לשליפה כדי שכרטיסיות המשחק יהיו באנגלית
         const result = await sql.query(`
-            SELECT Games.GameID, Players.FullName AS CreatorName, Courts.CourtName, Courts.CourtNameEn, CONVERT(varchar, Games.StartTime, 120) AS StartTimeStr, Games.MissingPlayers, Games.GameStatus
+            SELECT Games.GameID, Players.FullName AS CreatorName, Courts.CourtName, Courts.CourtNameEn, 
+                   CONVERT(varchar, Games.StartTime, 120) AS StartTimeStr, Games.MissingPlayers, Games.GameStatus, 
+                   Games.MinAge, Games.MaxAge
             FROM Games JOIN Players ON Games.CreatorPlayerID = Players.PlayerID JOIN Courts ON Games.CourtID = Courts.CourtID
             WHERE Games.GameStatus = 'Open' AND Games.StartTime >= DATEADD(hour, -2, GETDATE());
         `);
