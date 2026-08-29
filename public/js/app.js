@@ -350,16 +350,15 @@ function showToast(message) {
 window.showToast = showToast;
 
 // ==========================================
-// מנגנון בדיקת התראות ברקע (Polling)
+// מנגנון בדיקת התראות מהיר ברקע (Real-time Polling)
 // ==========================================
 async function checkBackgroundNotifications() {
     if (!myUserId) return;
     try {
-        // משיכת רשימת המשחקים שהמשתמש קשור אליהם
+        // משיכת רשימת המשחקים והתראות מעודכנות מיד
         const response = await fetch(`/api/games/history/${myUserId}?t=` + Date.now());
         const myGames = await response.json();
         
-        // מעבר על המשחקים ובדיקת הודעות מערכת אחרונות
         for (const game of myGames) {
             if (game.GameStatus !== 'Open') continue;
             const chatRes = await fetch(`/api/games/${game.GameID}/chat?t=` + Date.now());
@@ -367,21 +366,26 @@ async function checkBackgroundNotifications() {
             
             if (messages && messages.length > 0) {
                 const lastMsg = messages[messages.length - 1];
-                // אם ההודעה האחרונה היא הודעת מערכת והיא חדשה יחסית (נשלחה בדקה האחרונה)
                 if (lastMsg.SenderName === 'מערכת' && lastMsg.MessageText.includes('הצטרף')) {
-                    const msgKey = `notified_game_${game.GameID}_${messages.length}`;
-                    // מוודא שלא הצגנו את ההתראה הזו כבר
+                    const msgKey = `notified_msg_${game.GameID}_${messages.length}`;
                     if (!localStorage.getItem(msgKey)) {
                         localStorage.setItem(msgKey, 'true');
                         showToast(lastMsg.MessageText);
+                        
+                        // רענון אוטומטי של הרשימה והמפה מיד כשמתקבלת התראה
+                        if (typeof loadGames === 'function' && selectedSportFilter !== 'my_games') {
+                            loadGames();
+                        } else if (selectedSportFilter === 'my_games') {
+                            setSportFilter('my_games');
+                        }
                     }
                 }
             }
         }
     } catch (e) {
-        // שגיאות ברקע מתעלמים כדי לא להציק למשתמש
+        // התעלמות משגיאות רשת זמניות ברקע
     }
 }
 
-// הפעלת הבדיקה ברקע כל 6 שניות
-setInterval(checkBackgroundNotifications, 6000);
+// בדיקה מהירה כל שנייה וחצי (1500 מילישניע) לקבלת תגובה מיידית!
+setInterval(checkBackgroundNotifications, 1500);
