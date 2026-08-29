@@ -250,7 +250,6 @@ app.put('/api/games/:id/join', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה בהצטרפות" }); }
 });
 
-// עזיבת משחק
 app.put('/api/games/:id/leave', async (req, res) => {
     try {
         const gameId = req.params.id;
@@ -259,14 +258,21 @@ app.put('/api/games/:id/leave', async (req, res) => {
 
         await sql.connect(sqlConfig);
         
+        // 🔍 הוספה: שליפת שם המשתמש שעוזב כדי שנוכל לרשום אותו בהתראה
+        const userCheck = await sql.query(`SELECT FullName FROM Players WHERE PlayerID = ${userId}`);
+        const leavingUserName = userCheck.recordset.length > 0 ? userCheck.recordset[0].FullName : "שחקן";
+
         // מחיקה מטבלת המשתתפים
-        const result = await sql.query(`DELETE FROM GameParticipants WHERE GameID = ${gameId} AND PlayerID = ${userId}`);
+        await sql.query(`DELETE FROM GameParticipants WHERE GameID = ${gameId} AND PlayerID = ${userId}`);
         
         // עדכון שחקן חסר חזרה
         const check = await sql.query(`SELECT MissingPlayers FROM Games WHERE GameID = ${gameId}`);
         let missing = check.recordset[0].MissingPlayers + 1;
         await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = 'Open' WHERE GameID = ${gameId}`);
         
+        // 🔔 הוספה: שליחת הודעת מערכת אוטומטית לצ'אט על כך שהשחקן ביטל את הגעתו
+        await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ ${leavingUserName} ביטל/ה את הגעתו/ה למשחק')`);
+
         res.json({ success: true, missingPlayers: missing });
     } catch (err) { res.status(500).json({ error: "תקלה בעזיבה" }); }
 });
@@ -283,6 +289,12 @@ app.put('/api/games/:id/status', async (req, res) => {
             return res.status(403).json({ error: "אין לך הרשאה! רק יוצר המשחק יכול לעדכן סטטוס." });
         }
         await sql.query(`UPDATE Games SET GameStatus = '${status}' WHERE GameID = ${gameId}`);
+        
+        // 🔔 הוספה: אם סטטוס המשחק שונה ל-'Cancelled' (בוטל), נשלח הודעת מערכת אוטומטית לצ'אט
+        if (status === 'Cancelled') {
+            await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ המשחק בוטל על ידי היוצר')`);
+        }
+
         res.json({ success: true, newStatus: status });
     } catch (err) { res.status(500).json({ error: "תקלה בשרת" }); }
 });
