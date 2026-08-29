@@ -39,7 +39,6 @@ function setTimeMode(mode) {
     }
 }
 window.setTimeMode = setTimeMode;
-
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 window.toggleDarkMode = toggleDarkMode;
 
@@ -82,14 +81,19 @@ function updateHeatmap() {
     }
 }
 
-function setSportFilter(sport) {
-    selectedSportFilter = sport;
-    document.getElementById('btnAll').className = `sport-btn ${sport === 'all' ? 'active' : ''}`;
-    document.getElementById('btnBasketball').className = `sport-btn ${sport === 'Basketball' ? 'active' : ''}`;
-    document.getElementById('btnFootball').className = `sport-btn ${sport === 'Football' ? 'active' : ''}`;
+// לוגיקת הסינון עודכנה כדי לתמוך בכפתור החדש!
+function setSportFilter(filter) {
+    selectedSportFilter = filter;
+    document.getElementById('btnAll').className = `sport-btn ${filter === 'all' ? 'active' : ''}`;
+    document.getElementById('btnBasketball').className = `sport-btn ${filter === 'Basketball' ? 'active' : ''}`;
+    document.getElementById('btnFootball').className = `sport-btn ${filter === 'Football' ? 'active' : ''}`;
+    document.getElementById('btnMyGames').className = `sport-btn ${filter === 'my_games' ? 'active' : ''}`;
     
     allCourts.forEach(court => {
-        const matchSport = (selectedSportFilter === 'all' || court.SportType === selectedSportFilter);
+        let matchSport = true;
+        if (filter === 'Basketball' || filter === 'Football') {
+            matchSport = (court.SportType === filter);
+        }
         const isCloseEnough = !userHasLocation || (court.distanceKm !== undefined && court.distanceKm <= 10);
         if (matchSport && isCloseEnough) { 
             if (!map.hasLayer(court.marker)) map.addLayer(court.marker); 
@@ -140,7 +144,10 @@ function populateDropdown(searchTerm) {
     courtSelect.innerHTML = `<option value="">${t("selectPlaceholder")}</option>`; 
     allCourts.filter(c => {
         const matchName = c.CourtName.includes(searchTerm) || (c.CourtNameEn && c.CourtNameEn.toLowerCase().includes(searchTerm.toLowerCase()));
-        const matchSport = (selectedSportFilter === 'all' || c.SportType === selectedSportFilter);
+        let matchSport = true;
+        if (selectedSportFilter === 'Basketball' || selectedSportFilter === 'Football') {
+            matchSport = (c.SportType === selectedSportFilter);
+        }
         const isCloseEnough = !userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10);
         return matchName && matchSport && isCloseEnough;
     }).slice(0, 50).forEach(court => {
@@ -161,12 +168,27 @@ async function loadGames() {
 }
 window.loadGames = loadGames;
 
+// פונקציית הרינדור עודכנה כדי לתמוך בסינון החדש!
 function renderGamesList() {
     updateHeatmap(); 
     const container = document.getElementById('gamesList'); container.innerHTML = ''; 
+    
     const filtered = allGames.filter(g => { 
         const c = allCourts.find(court => court.CourtName === g.CourtName); 
-        return c && (selectedSportFilter === 'all' || c.SportType === selectedSportFilter) && (!userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10)); 
+        
+        // סינון לפי "המשחקים שלי"
+        if (selectedSportFilter === 'my_games') {
+            const isCreator = parseInt(myUserId) === g.CreatorPlayerID;
+            const joinedPlayers = g.JoinedPlayersStr ? g.JoinedPlayersStr.split(',').filter(id => id !== '') : [];
+            const hasJoined = joinedPlayers.includes(String(myUserId));
+            if (!isCreator && !hasJoined) return false;
+        } 
+        // סינון רגיל של ספורט
+        else if (selectedSportFilter !== 'all') {
+            if (c.SportType !== selectedSportFilter) return false;
+        }
+        
+        return c && (!userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10)); 
     });
     
     if (filtered.length === 0) { 
@@ -189,14 +211,11 @@ function renderGamesList() {
         const joinedPlayers = game.JoinedPlayersStr ? game.JoinedPlayersStr.split(',').filter(id => id !== '') : [];
         const hasJoined = joinedPlayers.includes(String(myUserId));
         
-        // בניית כפתורי השתתפות - מסתיר את הכפתור לגמרי מהיוצר של המשחק!
         let joinControlsHtml = '';
         if (!isCreator) {
             if (hasJoined) {
-                // כפתור אפור לביטול השתתפות
                 joinControlsHtml = `<button class="join-btn" style="background-color: #95a5a6;" onclick="leaveGame(${game.GameID})">${t("leaveGameBtn")}</button>`;
             } else {
-                // כפתור ירוק להצטרפות
                 joinControlsHtml = `<button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">${t("joinBtn")}</button>`;
             }
         }
@@ -226,74 +245,38 @@ function renderGamesList() {
 }
 window.renderGamesList = renderGamesList;
 
-// עדכון פונקציית ההצטרפות לשליחת המזהה
 async function joinGame(gameId, courtName) {
     try {
-        const response = await fetch(`/api/games/${gameId}/join`, { 
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: myUserId })
-        });
+        const response = await fetch(`/api/games/${gameId}/join`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: myUserId }) });
         const data = await response.json();
-        if (response.ok) { 
-            alert(t("joinedSuccess")); 
-            loadGames(); 
-            openChat(gameId, courtName); 
-        } else { 
-            alert(data.error); 
-        }
+        if (response.ok) { alert(t("joinedSuccess")); loadGames(); openChat(gameId, courtName); } else { alert(data.error); }
     } catch (error) { alert(t("netError")); }
 }
 window.joinGame = joinGame;
 
-// הוספת פונקציית ביטול השתתפות (Leave)
 async function leaveGame(gameId) {
     try {
-        const response = await fetch(`/api/games/${gameId}/leave`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: myUserId })
-        });
+        const response = await fetch(`/api/games/${gameId}/leave`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: myUserId }) });
         const data = await response.json();
-        if (response.ok) {
-            alert(t("leftSuccess"));
-            loadGames(); 
-        } else {
-            alert(data.error);
-        }
-    } catch (error) {
-        alert(t("netError"));
-    }
+        if (response.ok) { alert(t("leftSuccess")); loadGames(); } else { alert(data.error); }
+    } catch (error) { alert(t("netError")); }
 }
 window.leaveGame = leaveGame;
 
 async function updateGameStatus(gameId, status) {
     const confirmMsg = status === 'Cancelled' ? t("confirmCancel") : t("confirmFull");
     if (!confirm(confirmMsg)) return;
-
     try {
-        const response = await fetch(`/api/games/${gameId}/status`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: myUserId, status: status })
-        });
+        const response = await fetch(`/api/games/${gameId}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: myUserId, status: status }) });
         const data = await response.json();
-        if (response.ok) {
-            alert(status === 'Cancelled' ? t("gameCancelledStatus") : t("gameFullStatus"));
-            loadGames(); 
-        } else {
-            alert(data.error || t("serverError"));
-        }
-    } catch (error) {
-        alert(t("netError"));
-    }
+        if (response.ok) { alert(status === 'Cancelled' ? t("gameCancelledStatus") : t("gameFullStatus")); loadGames(); } else { alert(data.error || t("serverError")); }
+    } catch (error) { alert(t("netError")); }
 }
 window.updateGameStatus = updateGameStatus;
 
 async function createNewGame() {
     const courtId = document.getElementById('courtId').value; 
     const missingPlayers = document.getElementById('missingPlayers').value; 
-    
     const minAgeVal = parseInt(document.getElementById('minAge').value) || 10;
     const maxAgeVal = parseInt(document.getElementById('maxAge').value) || 99;
     
@@ -316,34 +299,14 @@ async function createNewGame() {
         const creatorId = parseInt(myUserId);
         
         const response = await fetch('/api/games', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ 
-                courtId: parseInt(courtId), 
-                creatorPlayerId: creatorId, 
-                missingPlayers: parseInt(missingPlayers), 
-                startTime: sqlStartTime,
-                minAge: minAgeVal,
-                maxAge: maxAgeVal
-            }) 
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courtId: parseInt(courtId), creatorPlayerId: creatorId, missingPlayers: parseInt(missingPlayers), startTime: sqlStartTime, minAge: minAgeVal, maxAge: maxAgeVal }) 
         });
         
-        if(response.ok) { 
-            document.getElementById('missingPlayers').value = ''; 
-            document.getElementById('minAge').value = ''; 
-            document.getElementById('maxAge').value = ''; 
-            loadGames(); 
-            document.getElementById('whatsappModal').style.display = 'flex'; 
-        } 
+        if(response.ok) { document.getElementById('missingPlayers').value = ''; document.getElementById('minAge').value = ''; document.getElementById('maxAge').value = ''; loadGames(); document.getElementById('whatsappModal').style.display = 'flex'; } 
         else { const data = await response.json(); alert(t("serverError") + (data.error || "")); }
-        
         submitBtn.innerText = t("submitGameBtn"); submitBtn.disabled = false;
-    } catch (error) { 
-        alert(t("netError")); 
-        document.querySelector('.submit-btn').innerText = t("submitGameBtn"); document.querySelector('.submit-btn').disabled = false;
-    }
+    } catch (error) { alert(t("netError")); document.querySelector('.submit-btn').innerText = t("submitGameBtn"); document.querySelector('.submit-btn').disabled = false; }
 }
 window.createNewGame = createNewGame;
-
 function closeModal() { document.getElementById('whatsappModal').style.display = 'none'; }
 window.closeModal = closeModal;

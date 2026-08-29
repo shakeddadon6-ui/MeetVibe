@@ -14,7 +14,10 @@ const translations = {
         loginBtn: "היכנס למגרש", registerBtn: "צור משתמש חדש", resetTitle: "איפוס סיסמה", updatePasswordBtn: "עדכן סיסמה",
         forgotPassword: "שכחתי סיסמה 🤔", backToLogin: "חזור להתחברות",
         welcome: "👋 אהלן {name}! מה נשחק היום?",
-        filterAll: "🌍 הכל", filterBasketball: "🏀 כדורסל", filterFootball: "⚽ כדורגל",
+        
+        // התוספת לסינון
+        filterAll: "🌍 הכל", filterBasketball: "🏀 כדורסל", filterFootball: "⚽ כדורגל", filterMyGames: "👤 המשחקים שלי",
+        
         formTitle: "➕ פתח משחק חדש", searchPlaceholder: "🔍 הקלד שם מגרש לחיפוש מהיר...", selectPlaceholder: "-- בחר מגרש --", searchingLocation: "מחפש מיקום... 📍",
         missingPlayersPlaceholder: "כמה שחקנים חסרים?", btnNow: "⚡ עכשיו", btnFuture: "🕰️ עתידי", submitGameBtn: "פתח משחק!",
         activeGamesTitle: "🔥 משחקים שקורים עכשיו:", noGames: "אין משחקים פתוחים. פתח אחד!", creator: "👤 יוצר:",
@@ -22,14 +25,12 @@ const translations = {
         nightMode: "🌙 לילה", dayMode: "☀️ יום", chatTitle: "צ'אט", chatPlaceholder: "הקלד הודעה...",
         gameCreatedTitle: "🎉 המשחק נפתח!", whatsappBtn: "💬 שלח בוואטסאפ", closeBtn: "סגור",
         
-        // התראות וטקסטים דינמיים
         selectCourtAlert: "📍 היי! שכחת לבחור מגרש מהרשימה.", missingPlayersAlert: "👥 היי! אנא הזן כמה שחקנים חסרים.",
         joinedSuccess: "הצטרפת בהצלחה! מעביר אותך לצ'אט...", timePastError: "❌ שגיאה: בחרת שעה שכבר עברה.",
         creatingGame: "פותח משחק... ⏳", serverError: "❌ השרת דחה את הבקשה: ", netError: "❌ תקלת תקשורת מול השרת.",
         youAreHere: "📍 אתה כאן!", distanceKm: 'ק"מ', awayFromYou: 'ק"מ ממך', happeningNow: '🟢 קורה עכשיו (ב-{time})', futureGame: '🕰️ עתידי להיום (ב-{time})',
         chatMe: "אני", chatEmpty: "אין הודעות. תגיד שלום! 👋",
         
-        // התראות התחברות
         authSuccess: "נרשמת בהצלחה! בבקשה התחבר.", loginError: "תקלה בהתחברות.",
         already_exists: "המספר כבר רשום במערכת. מעביר אותך להתחברות...",
         not_found: "המספר לא קיים במערכת. מעביר אותך להרשמה...",
@@ -37,7 +38,6 @@ const translations = {
         resetSuccess: "✅ הסיסמה שונתה בהצלחה!",
         resetNotFound: "❌ המספר הזה לא קיים במערכת.",
 
-        // כפתורי יוצר המשחק ומערכת השתתפות
         cancelGameBtn: "❌ בטל משחק", markFullBtn: "✅ סמן כמלא",
         confirmCancel: "האם אתה בטוח שברצונך לבטל את המשחק?", confirmFull: "האם אתה בטוח שברצונך לסמן את המשחק כמלא?",
         gameCancelledStatus: "המשחק בוטל בהצלחה ונמחק מהמפה.", gameFullStatus: "המשחק סומן כמלא בהצלחה!",
@@ -52,7 +52,10 @@ const translations = {
         loginBtn: "Enter Court", registerBtn: "Create Account", resetTitle: "Reset Password", updatePasswordBtn: "Update Password",
         forgotPassword: "Forgot password? 🤔", backToLogin: "Back to Login",
         welcome: "👋 Hey {name}! What are we playing today?",
-        filterAll: "🌍 All", filterBasketball: "🏀 Basketball", filterFootball: "⚽ Football",
+        
+        // Filter Additions
+        filterAll: "🌍 All", filterBasketball: "🏀 Basketball", filterFootball: "⚽ Football", filterMyGames: "👤 My Games",
+        
         formTitle: "➕ Open New Game", searchPlaceholder: "🔍 Search court...", selectPlaceholder: "-- Select Court --", searchingLocation: "Searching location... 📍",
         missingPlayersPlaceholder: "Missing players?", btnNow: "⚡ Now", btnFuture: "🕰️ Later", submitGameBtn: "Open Game!",
         activeGamesTitle: "🔥 Active Games Right Now:", noGames: "No open games. Open one!", creator: "👤 Creator:",
@@ -109,8 +112,6 @@ function setLanguage(lang) {
     }
 }
 window.setLanguage = setLanguage;
-
 function toggleLanguage() { setLanguage(currentLang === 'he' ? 'en' : 'he'); }
 window.toggleLanguage = toggleLanguage;
-
 document.addEventListener('DOMContentLoaded', () => setLanguage(currentLang));
