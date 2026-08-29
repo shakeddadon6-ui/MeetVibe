@@ -343,35 +343,43 @@ function showToast(message) {
     toast.innerText = message;
     toast.classList.add('show');
     
-    // הפעלת סאונד עדין, רך ונעים יותר (Pop קצרצר)
-    try {
-        const sound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
-        sound.volume = 0.2; // עוצמה שקטה ועדינה
-        sound.play().catch(e => {
-            // התעלמות מחסימות אוטומטיות של הדפדפן
-        });
-    } catch (err) {}
-    
     setTimeout(() => {
         toast.classList.remove('show');
     }, 4000);
 }
 window.showToast = showToast;
 
+function showNotificationWithSound(message) {
+    showToast(message); // מציג את הבועה הוויזואלית
+    
+    // מנגן סאונד רק אם המשתמש לא במצב שקט / המערכת מאפשרת אודיו
+    try {
+        const sound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+        sound.volume = 0.2;
+        let playPromise = sound.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                // הדפדפן חוסם אודיו אוטומטי אם אין אינטראקציה או במצב שקט
+            });
+        }
+    } catch (err) {}
+}
+
 // ==========================================
 // מנגנון בדיקת התראות ועדכונים מהיר ברקע (Real-time Sync)
 // ==========================================
 let lastKnownGamesCount = 0;
 
+
 async function checkBackgroundNotifications() {
     if (!myUserId) return;
     try {
-        // 1. בדיקת משחקים חדשים שנוספו במערכת (כדי שכולם יראו משחק חדש מיד)
+        // 1. בדיקת משחקים חדשים שנוספו במערכת (עם סאונד רקע לכולם חוץ מהיוצר)
         const allGamesRes = await fetch('/api/games?t=' + Date.now());
         const currentGames = await allGamesRes.json();
         
         if (lastKnownGamesCount > 0 && currentGames.length > lastKnownGamesCount) {
-            showToast("🔥 משחק חדש נפתח במפה!");
+            showNotificationWithSound("🔥 משחק חדש נפתח במפה!");
             if (typeof loadGames === 'function' && selectedSportFilter !== 'my_games') {
                 loadGames();
             }
@@ -394,7 +402,9 @@ async function checkBackgroundNotifications() {
                     const msgKey = `notified_msg_${game.GameID}_${messages.length}`;
                     if (!localStorage.getItem(msgKey)) {
                         localStorage.setItem(msgKey, 'true');
-                        showToast(lastMsg.MessageText);
+                        
+                        // קריאה לפונקציה החדשה שכוללת סאונד עדין למשתמשים שצופים מהצד
+                        showNotificationWithSound(lastMsg.MessageText);
                         
                         // רענון אוטומטי של הרשימה והמפה מיד
                         if (typeof loadGames === 'function' && selectedSportFilter !== 'my_games') {
