@@ -164,11 +164,18 @@ app.get('/api/courts', async (req, res) => {
 app.post('/api/games', async (req, res) => {
     try {
         const { courtId, creatorPlayerId, missingPlayers, startTime, minAge, maxAge } = req.body;
+        console.log("📥 נתונים שהתקבלו ליצירת משחק:", req.body); // הדפסה לטרמינל לבדיקה
+        
         await sql.connect(sqlConfig);
         await sql.query(`INSERT INTO Games (CourtID, CreatorPlayerID, StartTime, MissingPlayers, GameStatus, MinAge, MaxAge) 
                          VALUES (${courtId}, ${creatorPlayerId}, '${startTime}', ${missingPlayers}, 'Open', ${minAge || 10}, ${maxAge || 99});`);
+        
+        console.log("✅ המשחק נשמר בהצלחה במסד הנתונים!");
         res.status(201).json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+        console.error("❌ שגיאה בשמירת משחק במסד:", err.message); // הדפסת השגיאה המדויקת
+        res.status(500).json({ error: err.message }); 
+    }
 });
 
 // משיכת משחקים רגילה (רק פעילים)
