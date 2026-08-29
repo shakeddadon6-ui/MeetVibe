@@ -9,7 +9,6 @@ const translations = {
         appTitle: "SportMatch", loginTab: "התחברות", registerTab: "הרשמה",
         phonePlaceholder: "מספר טלפון", passwordPlaceholder: "סיסמה", namePlaceholder: "שם מלא", choosePasswordPlaceholder: "בחר סיסמה", newPasswordPlaceholder: "סיסמה חדשה",
         
-        // תוספות גיל למילון
         agePlaceholder: "גיל", minAgePlaceholder: "גיל מינימלי", maxAgePlaceholder: "גיל מקסימלי",
         
         loginBtn: "היכנס למגרש", registerBtn: "צור משתמש חדש", resetTitle: "איפוס סיסמה", updatePasswordBtn: "עדכן סיסמה",
@@ -36,13 +35,17 @@ const translations = {
         not_found: "המספר לא קיים במערכת. מעביר אותך להרשמה...",
         wrong_password: "❌ סיסמה שגויה.",
         resetSuccess: "✅ הסיסמה שונתה בהצלחה!",
-        resetNotFound: "❌ המספר הזה לא קיים במערכת."
+        resetNotFound: "❌ המספר הזה לא קיים במערכת.",
+
+        // כפתורי יוצר המשחק
+        cancelGameBtn: "❌ בטל משחק", markFullBtn: "✅ סמן כמלא",
+        confirmCancel: "האם אתה בטוח שברצונך לבטל את המשחק?", confirmFull: "האם אתה בטוח שברצונך לסמן את המשחק כמלא?",
+        gameCancelledStatus: "המשחק בוטל בהצלחה ונמחק מהמפה.", gameFullStatus: "המשחק סומן כמלא בהצלחה!"
     },
     en: {
         appTitle: "SportMatch", loginTab: "Login", registerTab: "Register",
         phonePlaceholder: "Phone Number", passwordPlaceholder: "Password", namePlaceholder: "Full Name", choosePasswordPlaceholder: "Choose Password", newPasswordPlaceholder: "New Password",
         
-        // Age additions to dictionary
         agePlaceholder: "Age", minAgePlaceholder: "Min Age", maxAgePlaceholder: "Max Age",
         
         loginBtn: "Enter Court", registerBtn: "Create Account", resetTitle: "Reset Password", updatePasswordBtn: "Update Password",
@@ -69,7 +72,12 @@ const translations = {
         not_found: "Phone number not found. Redirecting to registration...",
         wrong_password: "❌ Wrong password.",
         resetSuccess: "✅ Password reset successfully!",
-        resetNotFound: "❌ This phone number does not exist."
+        resetNotFound: "❌ This phone number does not exist.",
+
+        // Creator controls
+        cancelGameBtn: "❌ Cancel Game", markFullBtn: "✅ Mark Full",
+        confirmCancel: "Are you sure you want to cancel this game?", confirmFull: "Are you sure you want to mark this game as full?",
+        gameCancelledStatus: "Game cancelled successfully.", gameFullStatus: "Game marked as full successfully!"
     }
 };
 

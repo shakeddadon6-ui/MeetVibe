@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ app.js - מנגנון הליבה (כולל גילאים ושבירת מטמון)
+// קובץ app.js - מנגנון הליבה 
 // ==========================================
 
 let myUserId = localStorage.getItem('sportMatchUserId');
@@ -46,7 +46,7 @@ function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 window.toggleDarkMode = toggleDarkMode;
 
 // ==========================================
-// הגדרת המפה והחלפת שפה דינמית
+// הגדרת המפה
 // ==========================================
 const map = L.map('map').setView([31.9685, 34.7700], 13); 
 let currentTileLayer = null;
@@ -193,10 +193,21 @@ function renderGamesList() {
         
         const timeBadgeHtml = diffMins <= 30 ? `<div class="time-badge time-now">${t("happeningNow").replace('{time}', timeString)}</div>` : `<div class="time-badge time-future">${t("futureGame").replace('{time}', timeString)}</div>`;
         const distanceHtml = userHasLocation && c.distanceKm ? `<div class="detail" style="color: #3498db; font-size: 0.95em; margin-top: 5px;">(${c.distanceKm.toFixed(1)} ${t("awayFromYou")})</div>` : '';
-        
-        // התוספת החדשה להצגת טווח הגילאים
         const ageHtml = `<div class="detail" style="color: #8e44ad; font-weight: bold; font-size: 0.95em; margin-top: 5px;">🎯 ${t("agePlaceholder")}: ${game.MinAge} - ${game.MaxAge}</div>`;
         
+        // בדיקה האם אני היוצר של המשחק
+        const isCreator = parseInt(myUserId) === game.CreatorPlayerID;
+        
+        // בניית כפתורי השליטה (אם אני היוצר)
+        let creatorControlsHtml = '';
+        if (isCreator) {
+            creatorControlsHtml = `
+            <div class="btn-group" style="margin-top: 10px;">
+                <button onclick="updateGameStatus(${game.GameID}, 'Cancelled')" style="background-color: #e74c3c; color: white; padding: 8px; border: none; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold;">${t("cancelGameBtn")}</button>
+                <button onclick="updateGameStatus(${game.GameID}, 'Full')" style="background-color: #f39c12; color: white; padding: 8px; border: none; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold;">${t("markFullBtn")}</button>
+            </div>`;
+        }
+
         card.innerHTML = `<div class="court-name">${c.SportType === 'Football' ? '⚽' : '🏀'} 📍 ${getDisplayCourtName(c)}</div>
                           <div class="detail"><strong>${t("creator")}</strong> ${game.CreatorName}</div>
                           ${timeBadgeHtml}
@@ -206,7 +217,8 @@ function renderGamesList() {
                           <div class="btn-group">
                               <button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">${t("joinBtn")}</button>
                               <button class="chat-btn" onclick="openChat(${game.GameID}, '${game.CourtName}')">${t("chatBtn")}</button>
-                          </div>`;
+                          </div>
+                          ${creatorControlsHtml}`;
         container.appendChild(card);
     });
 }
@@ -227,11 +239,34 @@ async function joinGame(gameId, courtName) {
 }
 window.joinGame = joinGame;
 
+// פונקציה חדשה לעדכון סטטוס משחק (ביטול/מלא)
+async function updateGameStatus(gameId, status) {
+    const confirmMsg = status === 'Cancelled' ? t("confirmCancel") : t("confirmFull");
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const response = await fetch(`/api/games/${gameId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: myUserId, status: status })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            alert(status === 'Cancelled' ? t("gameCancelledStatus") : t("gameFullStatus"));
+            loadGames(); // רענון רשימת המשחקים
+        } else {
+            alert(data.error || t("serverError"));
+        }
+    } catch (error) {
+        alert(t("netError"));
+    }
+}
+window.updateGameStatus = updateGameStatus;
+
 async function createNewGame() {
     const courtId = document.getElementById('courtId').value; 
     const missingPlayers = document.getElementById('missingPlayers').value; 
     
-    // משיכת נתוני הגיל מהטופס
     const minAgeVal = parseInt(document.getElementById('minAge').value) || 10;
     const maxAgeVal = parseInt(document.getElementById('maxAge').value) || 99;
     
@@ -253,7 +288,6 @@ async function createNewGame() {
         submitBtn.innerText = t("creatingGame"); submitBtn.disabled = true; 
         const creatorId = parseInt(myUserId);
         
-        // שליחת הגילאים לשרת!
         const response = await fetch('/api/games', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
