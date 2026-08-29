@@ -81,7 +81,7 @@ function updateHeatmap() {
     }
 }
 
-// לוגיקת הסינון עודכנה כדי לתמוך בכפתור החדש!
+// לוגיקת הסינון מתוקנת!
 function setSportFilter(filter) {
     selectedSportFilter = filter;
     document.getElementById('btnAll').className = `sport-btn ${filter === 'all' ? 'active' : ''}`;
@@ -90,11 +90,10 @@ function setSportFilter(filter) {
     document.getElementById('btnMyGames').className = `sport-btn ${filter === 'my_games' ? 'active' : ''}`;
     
     allCourts.forEach(court => {
-        let matchSport = true;
-        if (filter === 'Basketball' || filter === 'Football') {
-            matchSport = (court.SportType === filter);
-        }
+        // אם הסינון הוא כדורסל או כדורגל, בדוק התאמה. אחרת (הכל או המשחקים שלי), הראה את כולם על המפה.
+        const matchSport = (filter === 'all' || filter === 'my_games' || court.SportType === filter);
         const isCloseEnough = !userHasLocation || (court.distanceKm !== undefined && court.distanceKm <= 10);
+        
         if (matchSport && isCloseEnough) { 
             if (!map.hasLayer(court.marker)) map.addLayer(court.marker); 
         } else { 
@@ -144,10 +143,10 @@ function populateDropdown(searchTerm) {
     courtSelect.innerHTML = `<option value="">${t("selectPlaceholder")}</option>`; 
     allCourts.filter(c => {
         const matchName = c.CourtName.includes(searchTerm) || (c.CourtNameEn && c.CourtNameEn.toLowerCase().includes(searchTerm.toLowerCase()));
-        let matchSport = true;
-        if (selectedSportFilter === 'Basketball' || selectedSportFilter === 'Football') {
-            matchSport = (c.SportType === selectedSportFilter);
-        }
+        
+        // תיקון הסינון ברשימה הנפתחת: הראה הכל אם הפילטר הוא 'all' או 'my_games'
+        const matchSport = (selectedSportFilter === 'all' || selectedSportFilter === 'my_games' || c.SportType === selectedSportFilter);
+        
         const isCloseEnough = !userHasLocation || (c.distanceKm !== undefined && c.distanceKm <= 10);
         return matchName && matchSport && isCloseEnough;
     }).slice(0, 50).forEach(court => {
@@ -168,7 +167,6 @@ async function loadGames() {
 }
 window.loadGames = loadGames;
 
-// פונקציית הרינדור עודכנה כדי לתמוך בסינון החדש!
 function renderGamesList() {
     updateHeatmap(); 
     const container = document.getElementById('gamesList'); container.innerHTML = ''; 
@@ -183,7 +181,7 @@ function renderGamesList() {
             const hasJoined = joinedPlayers.includes(String(myUserId));
             if (!isCreator && !hasJoined) return false;
         } 
-        // סינון רגיל של ספורט
+        // סינון רגיל של ספורט (אם זה לא 'all' ולא 'my_games')
         else if (selectedSportFilter !== 'all') {
             if (c.SportType !== selectedSportFilter) return false;
         }
