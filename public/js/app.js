@@ -262,7 +262,14 @@ async function joinGame(gameId, courtName) {
     try {
         const response = await fetch(`/api/games/${gameId}/join`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: myUserId }) });
         const data = await response.json();
-        if (response.ok) { alert(t("joinedSuccess")); loadGames(); openChat(gameId, courtName); } else { alert(data.error); }
+        if (response.ok) { 
+            showToast("הצטרפת בהצלחה למשחק! 🎉"); 
+            alert(t("joinedSuccess")); 
+            loadGames(); 
+            openChat(gameId, courtName); 
+        } else { 
+            alert(data.error); 
+        }
     } catch (error) { alert(t("netError")); }
 }
 window.joinGame = joinGame;
@@ -331,3 +338,14 @@ async function createNewGame() {
 window.createNewGame = createNewGame;
 function closeModal() { document.getElementById('whatsappModal').style.display = 'none'; }
 window.closeModal = closeModal;
+function showToast(message) {
+    const toast = document.getElementById('toastNotification');
+    if (!toast) return;
+    toast.innerText = message;
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 4000);
+}
+window.showToast = showToast;
