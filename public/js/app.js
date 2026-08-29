@@ -20,9 +20,7 @@ function showMainApp() {
     document.getElementById('mainApp').style.display = 'block';
     
     const savedUsername = localStorage.getItem('sportMatchUser');
-    if (savedUsername) {
-        document.getElementById('welcomeMessage').innerText = t("welcome").replace('{name}', savedUsername);
-    }
+    if (savedUsername) { document.getElementById('welcomeMessage').innerText = t("welcome").replace('{name}', savedUsername); }
     
     setTimeout(() => { map.invalidateSize(); loadCourtsAndLocation(); loadGames(); }, 300);
 }
@@ -45,23 +43,15 @@ window.setTimeMode = setTimeMode;
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 window.toggleDarkMode = toggleDarkMode;
 
-// ==========================================
-// הגדרת המפה
-// ==========================================
 const map = L.map('map').setView([31.9685, 34.7700], 13); 
 let currentTileLayer = null;
 
 function updateMapLanguage(lang) {
     if (currentTileLayer) { map.removeLayer(currentTileLayer); }
-    
     if (lang === 'en') {
-        currentTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri'
-        });
+        currentTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' });
     } else {
-        currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap'
-        });
+        currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
     }
     currentTileLayer.addTo(map);
 }
@@ -195,10 +185,22 @@ function renderGamesList() {
         const distanceHtml = userHasLocation && c.distanceKm ? `<div class="detail" style="color: #3498db; font-size: 0.95em; margin-top: 5px;">(${c.distanceKm.toFixed(1)} ${t("awayFromYou")})</div>` : '';
         const ageHtml = `<div class="detail" style="color: #8e44ad; font-weight: bold; font-size: 0.95em; margin-top: 5px;">🎯 ${t("agePlaceholder")}: ${game.MinAge} - ${game.MaxAge}</div>`;
         
-        // בדיקה האם אני היוצר של המשחק
         const isCreator = parseInt(myUserId) === game.CreatorPlayerID;
+        const joinedPlayers = game.JoinedPlayersStr ? game.JoinedPlayersStr.split(',').filter(id => id !== '') : [];
+        const hasJoined = joinedPlayers.includes(String(myUserId));
         
-        // בניית כפתורי השליטה (אם אני היוצר)
+        // בניית כפתורי השתתפות - מסתיר את הכפתור לגמרי מהיוצר של המשחק!
+        let joinControlsHtml = '';
+        if (!isCreator) {
+            if (hasJoined) {
+                // כפתור אפור לביטול השתתפות
+                joinControlsHtml = `<button class="join-btn" style="background-color: #95a5a6;" onclick="leaveGame(${game.GameID})">${t("leaveGameBtn")}</button>`;
+            } else {
+                // כפתור ירוק להצטרפות
+                joinControlsHtml = `<button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">${t("joinBtn")}</button>`;
+            }
+        }
+
         let creatorControlsHtml = '';
         if (isCreator) {
             creatorControlsHtml = `
@@ -215,7 +217,7 @@ function renderGamesList() {
                           ${ageHtml}
                           <div class="badge">${t("missingBadge").replace('{count}', game.MissingPlayers)}</div>
                           <div class="btn-group">
-                              <button class="join-btn" onclick="joinGame(${game.GameID}, '${game.CourtName}')">${t("joinBtn")}</button>
+                              ${joinControlsHtml}
                               <button class="chat-btn" onclick="openChat(${game.GameID}, '${game.CourtName}')">${t("chatBtn")}</button>
                           </div>
                           ${creatorControlsHtml}`;
@@ -224,9 +226,14 @@ function renderGamesList() {
 }
 window.renderGamesList = renderGamesList;
 
+// עדכון פונקציית ההצטרפות לשליחת המזהה
 async function joinGame(gameId, courtName) {
     try {
-        const response = await fetch(`/api/games/${gameId}/join`, { method: 'PUT' });
+        const response = await fetch(`/api/games/${gameId}/join`, { 
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: myUserId })
+        });
         const data = await response.json();
         if (response.ok) { 
             alert(t("joinedSuccess")); 
@@ -239,7 +246,27 @@ async function joinGame(gameId, courtName) {
 }
 window.joinGame = joinGame;
 
-// פונקציה חדשה לעדכון סטטוס משחק (ביטול/מלא)
+// הוספת פונקציית ביטול השתתפות (Leave)
+async function leaveGame(gameId) {
+    try {
+        const response = await fetch(`/api/games/${gameId}/leave`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: myUserId })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            alert(t("leftSuccess"));
+            loadGames(); 
+        } else {
+            alert(data.error);
+        }
+    } catch (error) {
+        alert(t("netError"));
+    }
+}
+window.leaveGame = leaveGame;
+
 async function updateGameStatus(gameId, status) {
     const confirmMsg = status === 'Cancelled' ? t("confirmCancel") : t("confirmFull");
     if (!confirm(confirmMsg)) return;
@@ -253,7 +280,7 @@ async function updateGameStatus(gameId, status) {
         const data = await response.json();
         if (response.ok) {
             alert(status === 'Cancelled' ? t("gameCancelledStatus") : t("gameFullStatus"));
-            loadGames(); // רענון רשימת המשחקים
+            loadGames(); 
         } else {
             alert(data.error || t("serverError"));
         }
