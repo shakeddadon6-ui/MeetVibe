@@ -22,12 +22,11 @@ const sqlConfig = {
     }
 };
 
-// יצירת טבלאות ושדרוגן אוטומטית בענן
+// יצירת טבלאות ושדרוגן
 async function initDB() {
     try {
         await sql.connect(sqlConfig);
         
-        // 1. טבלת שחקנים
         await sql.query(`
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Players' and xtype='U')
             BEGIN
@@ -40,7 +39,6 @@ async function initDB() {
             END
         `);
 
-        // 2. טבלת מגרשים 
         await sql.query(`
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Courts' and xtype='U')
             BEGIN
@@ -54,7 +52,6 @@ async function initDB() {
             END
         `);
         
-        // 3. טבלת משחקים
         await sql.query(`
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Games' and xtype='U')
             BEGIN
@@ -69,7 +66,6 @@ async function initDB() {
             END
         `);
 
-        // 4. טבלת הודעות צ'אט
         await sql.query(`
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='GameMessages' and xtype='U')
             CREATE TABLE GameMessages (
@@ -81,14 +77,29 @@ async function initDB() {
             )
         `);
 
-        // עדכון טבלאות לתמיכה בגילאים
+        // ==========================================
+        // הטבלה החדשה לשמירת המשתתפים + מניעת כפילויות!
+        // ==========================================
+        await sql.query(`
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='GameParticipants' and xtype='U')
+            BEGIN
+                CREATE TABLE GameParticipants (
+                    ParticipantID INT IDENTITY(1,1) PRIMARY KEY,
+                    GameID INT,
+                    PlayerID INT,
+                    JoinedAt DATETIME DEFAULT GETDATE(),
+                    UNIQUE(GameID, PlayerID) -- מונע מהמסד לשמור את אותו משתמש פעמיים
+                )
+            END
+        `);
+
         await sql.query(`
             IF COL_LENGTH('Players', 'Age') IS NULL ALTER TABLE Players ADD Age INT DEFAULT 18;
             IF COL_LENGTH('Games', 'MinAge') IS NULL ALTER TABLE Games ADD MinAge INT DEFAULT 10;
             IF COL_LENGTH('Games', 'MaxAge') IS NULL ALTER TABLE Games ADD MaxAge INT DEFAULT 99;
         `);
 
-        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן!");
+        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן, כולל מערכת משתתפים חכמה!");
     } catch (err) {
         console.error("DB Init Error:", err);
     }
@@ -129,7 +140,6 @@ app.post('/api/login', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה בהתחברות." }); }
 });
 
-// איפוס סיסמה
 app.post('/api/reset-password', async (req, res) => {
     const { phone, newPassword } = req.body;
     try {
@@ -143,19 +153,14 @@ app.post('/api/reset-password', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה באיפוס סיסמה." }); }
 });
 
-// מגרשים
 app.get('/api/courts', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
         const result = await sql.query(`SELECT CourtID, CourtName, CourtNameEn, Latitude, Longitude, SportType FROM Courts`);
         res.json(result.recordset);
-    } catch (err) { 
-        console.error("Courts API Error:", err);
-        res.status(500).json({ error: "תקלה" }); 
-    }
+    } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
 
-// פתיחת משחק
 app.post('/api/games', async (req, res) => {
     try {
         const { courtId, creatorPlayerId, missingPlayers, startTime, minAge, maxAge } = req.body;
@@ -163,20 +168,18 @@ app.post('/api/games', async (req, res) => {
         await sql.query(`INSERT INTO Games (CourtID, CreatorPlayerID, StartTime, MissingPlayers, GameStatus, MinAge, MaxAge) 
                          VALUES (${courtId}, ${creatorPlayerId}, '${startTime}', ${missingPlayers}, 'Open', ${minAge || 10}, ${maxAge || 99});`);
         res.status(201).json({ success: true });
-    } catch (err) { 
-        console.error("❌ שגיאה בפתיחת משחק:", err);
-        res.status(500).json({ error: err.message }); 
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// משיכת משחקים - פולט גם את ה-ID של היוצר כדי שנדע להציג לו את כפתורי השליטה
+// משיכת משחקים - פולט גם רשימה (STRING) של כל ה-IDs של האנשים שנרשמו למשחק!
 app.get('/api/games', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
         const result = await sql.query(`
             SELECT Games.GameID, Games.CreatorPlayerID, Players.FullName AS CreatorName, Courts.CourtName, Courts.CourtNameEn, 
                    CONVERT(varchar, Games.StartTime, 120) AS StartTimeStr, Games.MissingPlayers, Games.GameStatus, 
-                   Games.MinAge, Games.MaxAge
+                   Games.MinAge, Games.MaxAge,
+                   ISNULL((SELECT CAST(PlayerID AS VARCHAR) + ',' FROM GameParticipants WHERE GameID = Games.GameID FOR XML PATH('')), '') AS JoinedPlayersStr
             FROM Games JOIN Players ON Games.CreatorPlayerID = Players.PlayerID JOIN Courts ON Games.CourtID = Courts.CourtID
             WHERE Games.GameStatus = 'Open' AND Games.StartTime >= DATEADD(hour, -2, GETDATE());
         `);
@@ -184,47 +187,79 @@ app.get('/api/games', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
 
-// הצטרפות למשחק
+// הצטרפות חכמה למשחק
 app.put('/api/games/:id/join', async (req, res) => {
     try {
+        const gameId = req.params.id;
+        const { userId } = req.body;
+        if (!userId) return res.status(400).json({ error: "שגיאת זיהוי משתמש" });
+
         await sql.connect(sqlConfig);
-        const check = await sql.query(`SELECT MissingPlayers FROM Games WHERE GameID = ${req.params.id}`);
+        
+        // מוודא שעוד לא נרשם
+        const checkJoined = await sql.query(`SELECT * FROM GameParticipants WHERE GameID = ${gameId} AND PlayerID = ${userId}`);
+        if (checkJoined.recordset.length > 0) {
+            return res.status(400).json({ error: "כבר נרשמת למשחק הזה!" });
+        }
+
+        const check = await sql.query(`SELECT MissingPlayers, CreatorPlayerID FROM Games WHERE GameID = ${gameId}`);
         if (check.recordset.length === 0) return res.status(404).json({ error: "לא נמצא" });
+        
+        // לא נותן ליוצר להצטרף למשחק של עצמו
+        if (check.recordset[0].CreatorPlayerID === parseInt(userId)) {
+            return res.status(400).json({ error: "אתה היוצר של המשחק, אתה כבר בפנים!" });
+        }
+
         let missing = check.recordset[0].MissingPlayers;
         if (missing <= 0) return res.status(400).json({ error: "מלא!" });
         missing -= 1;
-        await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = '${missing === 0 ? 'Full' : 'Open'}' WHERE GameID = ${req.params.id}`);
+        
+        // הכנסה לטבלת המשתתפים
+        await sql.query(`INSERT INTO GameParticipants (GameID, PlayerID) VALUES (${gameId}, ${userId})`);
+        // עדכון סטטוס המשחק
+        await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = '${missing === 0 ? 'Full' : 'Open'}' WHERE GameID = ${gameId}`);
+        
         res.json({ success: true, missingPlayers: missing });
-    } catch (err) { res.status(500).json({ error: "תקלה" }); }
+    } catch (err) { res.status(500).json({ error: "תקלה בהצטרפות" }); }
 });
 
-// ==========================================
-// התוספת החדשה: עדכון סטטוס משחק (ביטול / מלא)
-// ==========================================
+// נתיב חדש! עזיבת משחק
+app.put('/api/games/:id/leave', async (req, res) => {
+    try {
+        const gameId = req.params.id;
+        const { userId } = req.body;
+        if (!userId) return res.status(400).json({ error: "שגיאת זיהוי משתמש" });
+
+        await sql.connect(sqlConfig);
+        
+        // מחיקה מטבלת המשתתפים
+        const result = await sql.query(`DELETE FROM GameParticipants WHERE GameID = ${gameId} AND PlayerID = ${userId}`);
+        
+        // עדכון שחקן חסר חזרה
+        const check = await sql.query(`SELECT MissingPlayers FROM Games WHERE GameID = ${gameId}`);
+        let missing = check.recordset[0].MissingPlayers + 1;
+        await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = 'Open' WHERE GameID = ${gameId}`);
+        
+        res.json({ success: true, missingPlayers: missing });
+    } catch (err) { res.status(500).json({ error: "תקלה בעזיבה" }); }
+});
+
 app.put('/api/games/:id/status', async (req, res) => {
     try {
         const gameId = req.params.id;
         const { userId, status } = req.body; 
         
         await sql.connect(sqlConfig);
-        
-        // בדיקת אבטחה: האם המשתמש הוא היוצר?
         const check = await sql.query(`SELECT CreatorPlayerID FROM Games WHERE GameID = ${gameId}`);
         if (check.recordset.length === 0) return res.status(404).json({ error: "המשחק לא נמצא." });
-        
         if (check.recordset[0].CreatorPlayerID !== parseInt(userId)) {
             return res.status(403).json({ error: "אין לך הרשאה! רק יוצר המשחק יכול לעדכן סטטוס." });
         }
-        
         await sql.query(`UPDATE Games SET GameStatus = '${status}' WHERE GameID = ${gameId}`);
         res.json({ success: true, newStatus: status });
-    } catch (err) { 
-        console.error("שגיאה בעדכון סטטוס:", err);
-        res.status(500).json({ error: "תקלה בשרת" }); 
-    }
+    } catch (err) { res.status(500).json({ error: "תקלה בשרת" }); }
 });
 
-// צ'אט
 app.get('/api/games/:id/chat', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
