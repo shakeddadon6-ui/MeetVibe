@@ -28,7 +28,11 @@ const translations = {
         selectCourtAlert: "📍 היי! שכחת לבחור מגרש מהרשימה.", missingPlayersAlert: "👥 היי! אנא הזן כמה שחקנים חסרים.",
         joinedSuccess: "הצטרפת בהצלחה! מעביר אותך לצ'אט...", timePastError: "❌ שגיאה: בחרת שעה שכבר עברה.",
         creatingGame: "פותח משחק... ⏳", serverError: "❌ השרת דחה את הבקשה: ", netError: "❌ תקלת תקשורת מול השרת.",
-        youAreHere: "📍 אתה כאן!", distanceKm: 'ק"מ', awayFromYou: 'ק"מ ממך', happeningNow: '🟢 קורה עכשיו (ב-{time})', futureGame: '🕰️ עתידי להיום (ב-{time})',
+        youAreHere: "📍 אתה כאן!", distanceKm: 'ק"מ', awayFromYou: 'ק"מ ממך', 
+        
+        // טקסטים חדשים למשחקי עבר
+        happeningNow: '🟢 קורה עכשיו (ב-{time})', futureGame: '🕰️ עתידי להיום (ב-{time})', pastGame: '⚪ הסתיים (היה ב-{time})', cancelledGame: '❌ משחק שבוטל',
+        
         chatMe: "אני", chatEmpty: "אין הודעות. תגיד שלום! 👋",
         
         authSuccess: "נרשמת בהצלחה! בבקשה התחבר.", loginError: "תקלה בהתחברות.",
@@ -66,7 +70,11 @@ const translations = {
         selectCourtAlert: "📍 Hey! You forgot to select a court.", missingPlayersAlert: "👥 Please enter missing players.",
         joinedSuccess: "Successfully joined! Opening chat...", timePastError: "❌ Error: Time already passed.",
         creatingGame: "Opening game... ⏳", serverError: "❌ Server error: ", netError: "❌ Network error.",
-        youAreHere: "📍 You are here!", distanceKm: 'km', awayFromYou: 'km away', happeningNow: '🟢 Happening now (at {time})', futureGame: '🕰️ Future today (at {time})',
+        youAreHere: "📍 You are here!", distanceKm: 'km', awayFromYou: 'km away', 
+        
+        // New texts for history
+        happeningNow: '🟢 Happening now (at {time})', futureGame: '🕰️ Future today (at {time})', pastGame: '⚪ Ended (was at {time})', cancelledGame: '❌ Cancelled Game',
+        
         chatMe: "Me", chatEmpty: "No messages yet. Say hi! 👋",
         
         authSuccess: "Registered successfully! Please login.", loginError: "Login error.",
