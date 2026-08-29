@@ -81,7 +81,6 @@ function updateHeatmap() {
     }
 }
 
-// לוגיקת הסינון מעודכנת כך שכאשר לוחצים על "המשחקים שלי", המפה נשארת רגילה והרשימה נטענת מההיסטוריה
 async function setSportFilter(filter) {
     selectedSportFilter = filter;
     document.getElementById('btnAll').className = `sport-btn ${filter === 'all' ? 'active' : ''}`;
@@ -175,7 +174,6 @@ async function loadGames() {
 }
 window.loadGames = loadGames;
 
-// פונקציית הרינדור תומכת כעת בהצגת היסטוריה עם תגים חכמים (עבר/עתיד/בוטל)
 function renderGamesList(gamesToRender = allGames) {
     updateHeatmap(); 
     const container = document.getElementById('gamesList'); container.innerHTML = ''; 
@@ -197,7 +195,6 @@ function renderGamesList(gamesToRender = allGames) {
         const parts = game.StartTimeStr.split(/[- :]/); 
         const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
         
-        // יצירת מחרוזת תאריך, יום בשבוע ושעה מותאמת לשפה הנוכחית
         const optionsDate = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
         const formattedDate = gameDate.toLocaleDateString(currentLang === 'he' ? 'he-IL' : 'en-US', optionsDate);
         const timeString = `${String(gameDate.getHours()).padStart(2, '0')}:${String(gameDate.getMinutes()).padStart(2, '0')}`;
@@ -336,8 +333,10 @@ async function createNewGame() {
     } catch (error) { alert(t("netError")); document.querySelector('.submit-btn').innerText = t("submitGameBtn"); document.querySelector('.submit-btn').disabled = false; }
 }
 window.createNewGame = createNewGame;
+
 function closeModal() { document.getElementById('whatsappModal').style.display = 'none'; }
 window.closeModal = closeModal;
+
 function showToast(message) {
     const toast = document.getElementById('toastNotification');
     if (!toast) return;
