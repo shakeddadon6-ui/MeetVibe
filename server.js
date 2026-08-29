@@ -188,7 +188,7 @@ app.get('/api/games', async (req, res) => {
 });
 
 // ==========================================
-// התוספת החדשה: משיכת היסטוריה אישית
+// משיכת היסטוריה אישית
 // ==========================================
 app.get('/api/games/history/:userId', async (req, res) => {
     try {
@@ -207,7 +207,7 @@ app.get('/api/games/history/:userId', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה במשיכת היסטוריה" }); }
 });
 
-// הצטרפות חכמה למשחק
+// הצטרפות חכמה למשחק + שליחת הודעת מערכת לצ'אט
 app.put('/api/games/:id/join', async (req, res) => {
     try {
         const gameId = req.params.id;
@@ -230,6 +230,10 @@ app.put('/api/games/:id/join', async (req, res) => {
             return res.status(400).json({ error: "אתה היוצר של המשחק, אתה כבר בפנים!" });
         }
 
+        // שליפת שם השמחק המצטרף לצורך ההתראה בצ'אט
+        const userCheck = await sql.query(`SELECT FullName FROM Players WHERE PlayerID = ${userId}`);
+        const joiningUserName = userCheck.recordset.length > 0 ? userCheck.recordset[0].FullName : "שחקן חדש";
+
         let missing = check.recordset[0].MissingPlayers;
         if (missing <= 0) return res.status(400).json({ error: "מלא!" });
         missing -= 1;
@@ -239,6 +243,9 @@ app.put('/api/games/:id/join', async (req, res) => {
         // עדכון סטטוס המשחק
         await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = '${missing === 0 ? 'Full' : 'Open'}' WHERE GameID = ${gameId}`);
         
+        // 👇 התוספת: הכנסת הודעת מערכת אוטומטית לצ'אט של המשחק!
+        await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'🔔 ${joiningUserName} הצטרף/ה למשחק!')`);
+
         res.json({ success: true, missingPlayers: missing });
     } catch (err) { res.status(500).json({ error: "תקלה בהצטרפות" }); }
 });
