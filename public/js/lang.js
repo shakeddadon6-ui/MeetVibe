@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ lang.js - מערכת תרגום (עברית / English)
+// קובץ lang.js - מערכת תרגום מלאה (עברית / English)
 // ==========================================
 
 let currentLang = localStorage.getItem('sportMatchLang') || 'he';
@@ -16,38 +16,24 @@ const translations = {
         forgotPassword: "שכחתי סיסמה 🤔", backToLogin: "חזור להתחברות",
         welcome: "👋 אהלן {name}! מה בא לך לעשות היום?",
         
-        // התוספת לסינון
-        filterAll: "🌍 הכל", filterBasketball: "🏀 כדורסל", filterFootball: "⚽ כדורגל", 
-        filterPub: "🍻 ברים", filterPark: "🌳 פארקים", filterMyGames: "👤 הפעילויות שלי",
-        
-        formTitle: "➕ צור מפגש חדש", searchPlaceholder: "🔍 הקלד שם מיקום לחיפוש...", selectPlaceholder: "-- בחר מיקום --", searchingLocation: "מחפש מיקום... 📍",
-        missingPlayersPlaceholder: "כמה אנשים חסרים?", btnNow: "⚡ עכשיו", btnFuture: "🕰️ עתידי", submitGameBtn: "צור מפגש!",
-        activeGamesTitle: "🔥 מפגשים שקורים עכשיו:", noGames: "אין מפגשים פתוחים. צור אחד!", creator: "👤 יוצר:",
-        missingBadge: "🔥 מחפשים עוד {count} חבר'ה!", joinBtn: "🙋‍♂️ אני בא!", chatBtn: "💬 צ'אט", logout: "🚪 התנתק",
-        nightMode: "🌙 לילה", dayMode: "☀️ יום", chatTitle: "צ'אט", chatPlaceholder: "הקלד הודעה...",
+        formTitle: "🥂 יצירת מפגש חדש", cityPlaceholder: "🏙️ הקלד או בחר עיר ברשימה...", 
+        missingPlayersPlaceholder: "כמה אנשים חסרים?", submitGameBtn: "צור מפגש!",
+        activeGamesTitle: "🔥 מפגשים פתוחים:", noGames: "לא נמצאו מפגשים שתואמים את הסינון שבחרת.", creator: "👤 יוצר:",
+        joinBtn: "🙋‍♂️ אני בא!", leaveGameBtn: "ביטול הגעה", chatBtn: "💬 צ'אט לקביעת מיקום", logout: "🚪 התנתק",
+        nightMode: "🌙 לילה", dayMode: "☀️ יום", chatTitle: "💬 צ'אט", chatPlaceholder: "הקלד הודעה...",
         gameCreatedTitle: "🎉 המפגש נפתח!", whatsappBtn: "💬 שלח בוואטסאפ", closeBtn: "סגור",
-        
-        selectCourtAlert: "📍 היי! שכחת לבחור מיקום מהרשימה.", missingPlayersAlert: "👥 היי! אנא הזן כמה אנשים חסרים.",
-        joinedSuccess: "הצטרפת בהצלחה! מעביר אותך לצ'אט...", timePastError: "❌ שגיאה: בחרת שעה שכבר עברה.",
-        creatingGame: "יוצר מפגש... ⏳", serverError: "❌ השרת דחה את הבקשה: ", netError: "❌ תקלת תקשורת מול השרת.",
-        youAreHere: "📍 אתה כאן!", distanceKm: 'ק"מ', awayFromYou: 'ק"מ ממך', 
-        
-        // טקסטים חדשים למשחקי עבר
-        happeningNow: '🟢 קורה עכשיו (ב-{time})', futureGame: '🕰️ עתידי להיום (ב-{time})', pastGame: '⚪ הסתיים (היה ב-{time})', cancelledGame: '❌ מפגש שבוטל',
         
         chatMe: "אני", chatEmpty: "אין הודעות. תגיד שלום! 👋",
         
         authSuccess: "נרשמת בהצלחה! בבקשה התחבר.", loginError: "תקלה בהתחברות.",
-        already_exists: "המספר כבר רשום במערכת. מעביר אותך להתחברות...",
-        not_found: "המספר לא קיים במערכת. מעביר אותך להרשמה...",
-        wrong_password: "❌ סיסמה שגויה.",
-        resetSuccess: "✅ הסיסמה שונתה בהצלחה!",
+        already_exists: "המספר כבר רשום במערכת.", not_found: "המספר לא קיים במערכת.",
+        wrong_password: "❌ סיסמה שגויה.", resetSuccess: "✅ הסיסמה שונתה בהצלחה!",
         resetNotFound: "❌ המספר הזה לא קיים במערכת.",
+        netError: "❌ תקלת תקשורת מול השרת.", serverError: "❌ שגיאה: ",
 
-        cancelGameBtn: "❌ בטל מפגש", markFullBtn: "✅ סמן כמלא",
-        confirmCancel: "האם אתה בטוח שברצונך לבטל את המפגש?", confirmFull: "האם אתה בטוח שברצונך לסמן את המפגש כמלא?",
-        gameCancelledStatus: "המפגש בוטל בהצלחה ונמחק מהמפה.", gameFullStatus: "המפגש סומן כמלא בהצלחה!",
-        leaveGameBtn: "❌ ביטול הגעה", leftSuccess: "ביטלת את השתתפותך בהצלחה. נתראה בפעם הבאה!"
+        cancelGameBtn: "בטל מפגש", markFullBtn: "סמן כמלא",
+        confirmCancel: "האם אתה בטוח שברצונך לבטל את המפגש?", confirmFull: "האם המפגש מלא?",
+        leaveSuccess: "עזבת את המפגש."
     },
     en: {
         appTitle: "SportMatch", loginTab: "Login", registerTab: "Register",
@@ -60,38 +46,24 @@ const translations = {
         forgotPassword: "Forgot password? 🤔", backToLogin: "Back to Login",
         welcome: "👋 Hey {name}! What do you want to do today?",
         
-        // Filter Additions
-        filterAll: "🌍 All", filterBasketball: "🏀 Basketball", filterFootball: "⚽ Football", 
-        filterPub: "🍻 Pubs", filterPark: "🌳 Parks", filterMyGames: "👤 My Activities",
-        
-        formTitle: "➕ Open New Event", searchPlaceholder: "🔍 Search location...", selectPlaceholder: "-- Select Location --", searchingLocation: "Searching location... 📍",
-        missingPlayersPlaceholder: "Missing people?", btnNow: "⚡ Now", btnFuture: "🕰️ Later", submitGameBtn: "Create Event!",
-        activeGamesTitle: "🔥 Active Events Right Now:", noGames: "No open events. Create one!", creator: "👤 Creator:",
-        missingBadge: "🔥 Looking for {count} more!", joinBtn: "🙋‍♂️ I'm in!", chatBtn: "💬 Chat", logout: "🚪 Logout",
-        nightMode: "🌙 Dark", dayMode: "☀️ Light", chatTitle: "Chat", chatPlaceholder: "Type a message...",
+        formTitle: "➕ Create New Event", cityPlaceholder: "🏙️ Type or select city...", 
+        missingPlayersPlaceholder: "Missing people?", submitGameBtn: "Create Event!",
+        activeGamesTitle: "🔥 Open Events:", noGames: "No events found matching your filter.", creator: "👤 Creator:",
+        joinBtn: "🙋‍♂️ I'm in!", leaveGameBtn: "Leave Event", chatBtn: "💬 Chat for Location", logout: "🚪 Logout",
+        nightMode: "🌙 Dark", dayMode: "☀️ Light", chatTitle: "💬 Chat", chatPlaceholder: "Type a message...",
         gameCreatedTitle: "🎉 Event Created!", whatsappBtn: "💬 Share on WhatsApp", closeBtn: "Close",
-        
-        selectCourtAlert: "📍 Hey! You forgot to select a location.", missingPlayersAlert: "👥 Please enter missing people.",
-        joinedSuccess: "Successfully joined! Opening chat...", timePastError: "❌ Error: Time already passed.",
-        creatingGame: "Creating event... ⏳", serverError: "❌ Server error: ", netError: "❌ Network error.",
-        youAreHere: "📍 You are here!", distanceKm: 'km', awayFromYou: 'km away', 
-        
-        // New texts for history
-        happeningNow: '🟢 Happening now (at {time})', futureGame: '🕰️ Future today (at {time})', pastGame: '⚪ Ended (was at {time})', cancelledGame: '❌ Cancelled Event',
         
         chatMe: "Me", chatEmpty: "No messages yet. Say hi! 👋",
         
         authSuccess: "Registered successfully! Please login.", loginError: "Login error.",
-        already_exists: "Phone number already registered. Redirecting to login...",
-        not_found: "Phone number not found. Redirecting to registration...",
-        wrong_password: "❌ Wrong password.",
-        resetSuccess: "✅ Password reset successfully!",
+        already_exists: "Phone number already registered.", not_found: "Phone number not found.",
+        wrong_password: "❌ Wrong password.", resetSuccess: "✅ Password reset successfully!",
         resetNotFound: "❌ This phone number does not exist.",
+        netError: "❌ Network error.", serverError: "❌ Server error: ",
 
-        cancelGameBtn: "❌ Cancel Event", markFullBtn: "✅ Mark Full",
-        confirmCancel: "Are you sure you want to cancel this event?", confirmFull: "Are you sure you want to mark this event as full?",
-        gameCancelledStatus: "Event cancelled successfully.", gameFullStatus: "Event marked as full successfully!",
-        leaveGameBtn: "❌ Leave Event", leftSuccess: "Successfully left the event. See you next time!"
+        cancelGameBtn: "Cancel Event", markFullBtn: "Mark Full",
+        confirmCancel: "Are you sure you want to cancel this event?", confirmFull: "Mark event as full?",
+        leaveSuccess: "Successfully left the event."
     }
 };
 
@@ -105,7 +77,7 @@ function setLanguage(lang) {
     document.documentElement.lang = lang;
     
     const langBtn = document.getElementById('langToggleBtn');
-    if (langBtn) { langBtn.innerText = (lang === 'he') ? 'English (EN)' : 'Hebrew (HE)'; }
+    if (langBtn) { langBtn.innerText = (lang === 'he') ? 'English (EN)' : 'עברית (HE)'; }
 
     document.querySelectorAll('[data-i18n]').forEach(el => { el.innerText = t(el.getAttribute('data-i18n')); });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
@@ -116,14 +88,11 @@ function setLanguage(lang) {
         if (welcomeEl) welcomeEl.innerText = t("welcome").replace('{name}', savedUsername);
     }
     
-    if (window.updateMapLanguage) window.updateMapLanguage(lang);
-    if (typeof renderGamesList === 'function' && typeof allGames !== 'undefined') renderGamesList();
-    if (typeof populateDropdown === 'function') {
-        const searchBox = document.getElementById('searchBox');
-        populateDropdown(searchBox ? searchBox.value.trim() : '');
-    }
+    if (typeof filterGamesList === 'function') filterGamesList();
 }
 window.setLanguage = setLanguage;
+
 function toggleLanguage() { setLanguage(currentLang === 'he' ? 'en' : 'he'); }
 window.toggleLanguage = toggleLanguage;
+
 document.addEventListener('DOMContentLoaded', () => setLanguage(currentLang));
