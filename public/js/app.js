@@ -28,27 +28,37 @@ window.onload = function() {
     }
 };
 
-// פונקציה לשליפת מאגר הערים הממשלתי לעדכון ה-datalist
+// פונקציה לשליפת מאגר הערים הממשלתי הרשמי לעדכון ה-datalist
 async function loadIsraelCities() {
     try {
-        const response = await fetch('https://raw.githubusercontent.com/Binternet/israel-cities/master/israel-cities.json');
-        const cities = await response.json();
+        const response = await fetch('https://data.gov.il/api/3/action/datastore_search?resource_id=5c78e9fa-c2e2-4771-93ff-7f400cfdc2f6&limit=32000');
+        const data = await response.json();
         
-        const datalist = document.getElementById('israelCities');
-        if (!datalist) return;
-        
-        datalist.innerHTML = ''; 
-        
-        cities.forEach(cityObj => {
-            const cityName = cityObj.name || cityObj.שם_ישוב;
-            if (cityName) {
+        if (data.success && data.result.records) {
+            const datalist = document.getElementById('israelCities');
+            if (!datalist) return;
+            
+            datalist.innerHTML = ''; 
+            const citiesSet = new Set();
+
+            data.result.records.forEach(record => {
+                const cityName = record.שם_ישוב || record.city_name || record.שם_יישוב_לועזי;
+                if (cityName) {
+                    citiesSet.add(cityName.trim());
+                }
+            });
+
+            // מיון הערים בסדר אלפבתי עברי תקין
+            const sortedCities = Array.from(citiesSet).sort((a, b) => a.localeCompare(b, 'he'));
+            
+            sortedCities.forEach(cityName => {
                 const option = document.createElement('option');
-                option.value = cityName.trim();
+                option.value = cityName;
                 datalist.appendChild(option);
-            }
-        });
+            });
+        }
     } catch (err) {
-        console.error("שגיאה בטעינת מאגר הערים:", err);
+        console.error("שגיאה בטעינת מאגר הערים הממשלתי:", err);
     }
 }
 
