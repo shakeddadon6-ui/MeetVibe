@@ -6,7 +6,7 @@ let currentLang = localStorage.getItem('sportMatchLang') || 'he';
 
 const translations = {
     he: {
-        appTitle: "SportMatch", loginTab: "התחברות", registerTab: "הרשמה",
+        appTitle: "MeetVibe", loginTab: "התחברות", registerTab: "הרשמה",
         phonePlaceholder: "מספר טלפון", passwordPlaceholder: "סיסמה", namePlaceholder: "שם מלא", choosePasswordPlaceholder: "בחר סיסמה", newPasswordPlaceholder: "סיסמה חדשה",
         
         agePlaceholder: "גיל", minAgePlaceholder: "גיל מינימלי", maxAgePlaceholder: "גיל מקסימלי",
@@ -36,7 +36,7 @@ const translations = {
         leaveSuccess: "עזבת את המפגש."
     },
     en: {
-        appTitle: "SportMatch", loginTab: "Login", registerTab: "Register",
+        appTitle: "MeetVibe", loginTab: "Login", registerTab: "Register",
         phonePlaceholder: "Phone Number", passwordPlaceholder: "Password", namePlaceholder: "Full Name", choosePasswordPlaceholder: "Choose Password", newPasswordPlaceholder: "New Password",
         
         agePlaceholder: "Age", minAgePlaceholder: "Min Age", maxAgePlaceholder: "Max Age",
