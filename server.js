@@ -10,10 +10,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// חיבור לשרת הענן של Somee
+// חיבור לשרת הענן של Somee עם מסד הנתונים החדש MeetVibe
 const sqlConfig = {
     server: 'SportMatchDB.mssql.somee.com', 
-    database: 'SportMatchDB',
+    database: 'MeetVibe',
     user: 'shakedadon_SQLLogin_1',
     password: 'vh6n15djcv',
     options: { encrypt: false, trustServerCertificate: true }
@@ -22,7 +22,7 @@ const sqlConfig = {
 async function initDB() {
     try {
         await sql.connect(sqlConfig);
-        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן (תצורת מפגשים חברתיים בלבד)!");
+        console.log("✅ השרת מחובר בהצלחה למסד הנתונים MeetVibe (תצורת מפגשים חברתיים בלבד)!");
     } catch (err) { console.error("DB Init Error:", err); }
 }
 initDB();
@@ -63,7 +63,7 @@ app.post('/api/reset-password', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה באיפוס סיסמה." }); }
 });
 
-// יצירת מפגש (הכל חברתי עכשיו ללא תלות במפה)
+// יצירת מפגש חברתי
 app.post('/api/games', async (req, res) => {
     const { creatorPlayerId, missingPlayers, startTime, minAge, maxAge, city, prefGender, eventType } = req.body;
     try {
