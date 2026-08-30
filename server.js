@@ -66,6 +66,17 @@ app.use('/api', require('./routes/admin'));
 // Socket.io - ניהול תקשורת בזמן אמת
 // ==========================================
 io.on('connection', (socket) => {
+    // רישום משתמשים ואדמינים לחדרים פרטיים לצורך התראות אישיות
+    socket.on('register_user_socket', (data) => {
+        if (data.userId) socket.join(`user_${data.userId}`);
+        if (data.isAdmin) socket.join('admin_room');
+    });
+
+    // שידור התראת דיווח אדומה לכל המנהלים המחוברים
+    socket.on('send_report_alert', (data) => {
+        io.to('admin_room').emit('receive_admin_alert', data);
+    });
+
     socket.on('join_game_room', (gameId) => {
         socket.join(`game_${gameId}`);
     });
@@ -339,6 +350,18 @@ app.delete('/api/admin/players/:id', requireAdmin, async (req, res) => {
         await sql.query(`DELETE FROM Players WHERE PlayerID = ${playerId}`);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: "תקלה במחיקת משתמש" }); }
+});
+
+// ראוט לשליחת אזהרה למשתמש 
+app.post('/api/admin/warn', requireAdmin, async (req, res) => {
+    try {
+        const { userId, warningText } = req.body;
+        // שולח התראה בזמן אמת רק למשתמש הספציפי
+        io.to(`user_${userId}`).emit('receive_warning', { warningText });
+        res.json({ success: true });
+    } catch (err) { 
+        res.status(500).json({ error: "תקלה בשליחת האזהרה" }); 
+    }
 });
 
 server.listen(PORT, () => { console.log(`Server is running with Admin Support on port ${PORT}`); });
