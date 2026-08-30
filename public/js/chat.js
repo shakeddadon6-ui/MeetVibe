@@ -122,3 +122,39 @@ function handleChatEnter(e) {
     if (e.key === 'Enter') sendChatMessage();
 }
 window.handleChatEnter = handleChatEnter;
+
+// ==========================================
+// מערכת התראות ואזהרות (גלובלי)
+// ==========================================
+setTimeout(() => {
+    const myUserId = localStorage.getItem('sportMatchUserId');
+    const isUserAdmin = localStorage.getItem('sportMatchIsAdmin') === 'true' || localStorage.getItem('sportMatchIsAdmin') === '1';
+    if (myUserId && socket) {
+        socket.emit('register_user_socket', { userId: myUserId, isAdmin: isUserAdmin });
+    }
+}, 1500);
+
+// האזנה להתראות דיווח (מופיע למנהלים בלבד - צף בצד ימין למעלה)
+socket.on('receive_admin_alert', (data) => {
+    const alertHtml = `
+        <div style="position:fixed; top:20px; right:20px; background:#e74c3c; color:white; padding:20px; border-radius:10px; z-index:9999; box-shadow:0 4px 15px rgba(0,0,0,0.3); max-width:300px; border: 2px solid #c0392b; animation: slideIn 0.5s forwards;">
+            <h3 style="margin-top:0;">🚨 דיווח בזמן אמת!</h3>
+            <p><strong>משתמש שדווח:</strong> ${data.reportedName}</p>
+            <p><strong>סיבה:</strong> ${data.reason}</p>
+            <button onclick="this.parentElement.remove()" style="background:white; color:#e74c3c; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:bold; width:100%; margin-top:10px;">סגור התראה</button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+});
+
+// האזנה לאזהרות מהמנהל (מופיע למשתמש הפוגע - ענק באמצע המסך)
+socket.on('receive_warning', (data) => {
+    const warningHtml = `
+        <div style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#f39c12; color:white; padding:30px; border-radius:15px; z-index:10000; box-shadow:0 10px 40px rgba(0,0,0,0.6); text-align:center; min-width:320px; border: 4px solid #e67e22;">
+            <h2 style="margin-top:0; font-size:2.2em;">⚠️ אזהרת מערכת ⚠️</h2>
+            <p style="font-size:1.3em; margin: 20px 0;">${data.warningText}</p>
+            <button onclick="this.parentElement.remove()" style="background:white; color:#f39c12; border:none; padding:12px 25px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:1.2em; margin-top:15px; box-shadow:0 4px 6px rgba(0,0,0,0.2);">הבנתי, אני מתנצל</button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', warningHtml);
+});
