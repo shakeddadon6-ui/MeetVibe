@@ -9,13 +9,11 @@ window.onload = function() {
     if (myUserId && myUsername) { showMainApp(); } 
     else { document.getElementById('authScreen').style.display = 'flex'; document.getElementById('mainApp').style.display = 'none'; document.getElementById('homeScreen').style.display = 'none'; document.getElementById('socialApp').style.display = 'none';}
     
-    // מילוי שעות ודקות עבור משחקי ספורט
     const hourSelect = document.getElementById('gameHour');
     for (let i = 0; i < 24; i++) hourSelect.innerHTML += `<option value="${String(i).padStart(2, '0')}">${String(i).padStart(2, '0')}</option>`;
     const minuteSelect = document.getElementById('gameMinute');
     for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${String(i).padStart(2, '0')}">${String(i).padStart(2, '0')}</option>`;
 
-    // מילוי שעות ודקות עבור מפגשים חברתיים (ללא מפה)
     const socialHourSelect = document.getElementById('socialGameHour');
     if (socialHourSelect) {
         for (let i = 0; i < 24; i++) socialHourSelect.innerHTML += `<option value="${String(i).padStart(2, '0')}">${String(i).padStart(2, '0')}</option>`;
@@ -51,16 +49,12 @@ function openCategory(categoryType) {
 }
 window.openCategory = openCategory;
 
-// פונקציה חדשה לפתיחת מסך מפגשים חברתיים
 function openSocialApp() {
     document.getElementById('homeScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'none';
     document.getElementById('socialApp').style.display = 'block';
     
-    // קביעת תאריך ושעה לברירת מחדל
     const now = new Date(); 
-    
-    // הזנת תאריך של היום
     const dateInput = document.getElementById('socialGameDate');
     if (dateInput) {
         dateInput.value = now.toISOString().split('T')[0];
@@ -125,7 +119,7 @@ function updateHeatmap() {
     if (heatLayer) { map.removeLayer(heatLayer); } 
     const heatPoints = [];
     allGames.forEach(game => {
-        if (!game.IsSocial) { // מפת חום רק למשחקים פיזיים עם מגרש
+        if (!game.IsSocial) {
             const court = allCourts.find(c => c.CourtName === game.CourtName);
             if (court && (!userHasLocation || (court.distanceKm !== undefined && court.distanceKm <= 10)) && game.GameStatus === 'Open') {
                 const intensity = Math.min(game.MissingPlayers * 0.2, 1.0); 
@@ -237,6 +231,43 @@ async function loadGames() {
 }
 window.loadGames = loadGames;
 
+// סינון דינמי לרשימת המפגשים החברתיים לפי עיר וסוג בילוי
+function filterSocialList() {
+    const filterCity = (document.getElementById('filterSocialCity')?.value || '').trim().toLowerCase();
+    const filterType = document.getElementById('filterSocialType')?.value || 'all';
+
+    const socialContainer = document.getElementById('socialGamesList');
+    if (!socialContainer) return;
+    socialContainer.innerHTML = '';
+
+    let matchedCount = 0;
+
+    allGames.filter(g => g.IsSocial).forEach(game => {
+        const matchCity = !filterCity || (game.City && game.City.toLowerCase().includes(filterCity));
+        const matchType = filterType === 'all' || (game.EventType && game.EventType.includes(filterType));
+
+        if (matchCity && matchType) {
+            const parts = game.StartTimeStr.split(/[- :]/); 
+            const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
+            const optionsDate = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
+            const formattedDate = gameDate.toLocaleDateString(currentLang === 'he' ? 'he-IL' : 'en-US', optionsDate);
+            const timeString = `${String(gameDate.getHours()).padStart(2, '0')}:${String(gameDate.getMinutes()).padStart(2, '0')}`;
+            const diffMins = Math.floor((gameDate - new Date()) / 60000);
+
+            const card = document.createElement('div');
+            card.className = 'game-card';
+            card.innerHTML = createGameCardHtml(game, null, diffMins, formattedDate, timeString);
+            socialContainer.appendChild(card);
+            matchedCount++;
+        }
+    });
+
+    if (matchedCount === 0) {
+        socialContainer.innerHTML = `<p style="text-align:center; color:#7f8c8d; padding:20px;">לא נמצאו מפגשים חברתיים שתואמים את הסינון שבחרת.</p>`;
+    }
+}
+window.filterSocialList = filterSocialList;
+
 function createGameCardHtml(game, c, diffMins, formattedDate, timeString) {
     let timeBadgeHtml = '';
     if (game.GameStatus === 'Cancelled') {
@@ -305,30 +336,19 @@ function createGameCardHtml(game, c, diffMins, formattedDate, timeString) {
 function renderGamesList(gamesToRender = allGames) {
     updateHeatmap(); 
     const container = document.getElementById('gamesList'); 
-    const socialContainer = document.getElementById('socialGamesList');
-    
     if (container) container.innerHTML = ''; 
-    if (socialContainer) socialContainer.innerHTML = '';
     
     let hasSportGames = false;
-    let hasSocialGames = false;
 
     gamesToRender.forEach(game => {
-        const parts = game.StartTimeStr.split(/[- :]/); 
-        const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
-        
-        const optionsDate = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
-        const formattedDate = gameDate.toLocaleDateString(currentLang === 'he' ? 'he-IL' : 'en-US', optionsDate);
-        const timeString = `${String(gameDate.getHours()).padStart(2, '0')}:${String(gameDate.getMinutes()).padStart(2, '0')}`;
-        const diffMins = Math.floor((gameDate - new Date()) / 60000);
-        
-        const card = document.createElement('div'); card.className = 'game-card';
-        
-        if (game.IsSocial) {
-            card.innerHTML = createGameCardHtml(game, null, diffMins, formattedDate, timeString);
-            if (socialContainer) socialContainer.appendChild(card);
-            hasSocialGames = true;
-        } else {
+        if (!game.IsSocial) {
+            const parts = game.StartTimeStr.split(/[- :]/); 
+            const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
+            const optionsDate = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
+            const formattedDate = gameDate.toLocaleDateString(currentLang === 'he' ? 'he-IL' : 'en-US', optionsDate);
+            const timeString = `${String(gameDate.getHours()).padStart(2, '0')}:${String(gameDate.getMinutes()).padStart(2, '0')}`;
+            const diffMins = Math.floor((gameDate - new Date()) / 60000);
+            
             const c = allCourts.find(court => court.CourtName === game.CourtName); 
             let showSportGame = true;
             if (selectedSportFilter !== 'all' && selectedSportFilter !== 'my_games') {
@@ -337,6 +357,8 @@ function renderGamesList(gamesToRender = allGames) {
             if (c && userHasLocation && (c.distanceKm === undefined || c.distanceKm > 10)) showSportGame = false;
 
             if (showSportGame) {
+                const card = document.createElement('div'); 
+                card.className = 'game-card';
                 card.innerHTML = createGameCardHtml(game, c, diffMins, formattedDate, timeString);
                 if (container) container.appendChild(card);
                 hasSportGames = true;
@@ -345,7 +367,9 @@ function renderGamesList(gamesToRender = allGames) {
     });
 
     if (!hasSportGames && container) container.innerHTML = `<p>${t("noGames")}</p>`; 
-    if (!hasSocialGames && socialContainer) socialContainer.innerHTML = `<p>אין כרגע מפגשים חברתיים פתוחים. תהיה הראשון לפתוח אחד!</p>`;
+
+    // רענון רשימת המפגשים החברתיים תוך שמירה על הסינונים הפעילים
+    filterSocialList();
 }
 window.renderGamesList = renderGamesList;
 
@@ -411,7 +435,7 @@ async function createNewGame(isSocial = false) {
         const prefGender = document.getElementById('socialPrefGender').value;
         const dateStr = document.getElementById('socialGameDate').value;
 
-        if (!city) { alert("אנא הקלד עיר."); return; }
+        if (!city) { alert("אנא בחר או הקלד עיר."); return; }
         if (!eventType) { alert("אנא בחר סוג בילוי."); return; }
         if (!dateStr) { alert("אנא בחר תאריך."); return; }
         if (!missingPlayers || missingPlayers < 1) { alert("אנא הזן כמה אנשים חסרים."); return; }
@@ -420,7 +444,6 @@ async function createNewGame(isSocial = false) {
         const hStr = document.getElementById('socialGameHour').value; 
         const mStr = document.getElementById('socialGameMinute').value; 
         
-        // יצירת אובייקט תאריך מהקלט ושילוב השעה
         const gameTime = new Date(dateStr);
         gameTime.setHours(parseInt(hStr), parseInt(mStr), 0, 0);
         

@@ -60,9 +60,48 @@
             font-size: 1.1em;
         }
         .back-btn:hover { background-color: #2c3e50; }
+
+        .social-filter-bar {
+            display: flex;
+            gap: 10px;
+            padding: 10px 15px;
+            background: #fff;
+            border-radius: 10px;
+            margin: 10px 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            flex-wrap: wrap;
+        }
+        .social-filter-bar select, .social-filter-bar input {
+            flex: 1;
+            min-width: 130px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 0.95em;
+        }
     </style>
 </head>
 <body>
+
+    <!-- רשימת כל ערי ישראל לבחירה והשלמה מהירה -->
+    <datalist id="israelCities">
+        <option value="אום אל-פחם"><option value="אופקים"><option value="אור יהודה"><option value="אור עקיבא"><option value="אילת">
+        <option value="אלעד"><option value="אריאל"><option value="אשדוד"><option value="אשקלון"><option value="באקה אל-גרביה">
+        <option value="באר יעקב"><option value="באר שבע"><option value="בית שאן"><option value="בית שמש"><option value="ביתר עילית">
+        <option value="בני ברק"><option value="בת ים"><option value="גבעת שמואל"><option value="גבעתיים"><option value="דימונה">
+        <option value="הוד השרון"><option value="הרצליה"><option value="חדרה"><option value="חולון"><option value="חיפה">
+        <option value="טבריה"><option value="טובאס"><option value="טייבה"><option value="טירה"><option value="טירת כרמל">
+        <option value="יבנה"><option value="יהוד-מונוסון"><option value="יקנעם עילית"><option value="ירושלים"><option value="כפר יונה">
+        <option value="כפר סבא"><option value="כפר קאסם"><option value="כרמיאל"><option value="לוד"><option value="מגדל העמק">
+        <option value="מודיעין עילית"><option value="מודיעין-מכבים-רעות"><option value="מעלה אדומים"><option value="מעלות-תרשיחא"><option value="נהריה">
+        <option value="נס ציונה"><option value="נצרת"><option value="נצרת עילית (נוף הגליל)"><option value="נשר"><option value="נתיבות">
+        <option value="נתניה"><option value="סח'נין"><option value="עכו"><option value="עפולה"><option value="עראבה">
+        <option value="ערד"><option value="פתח תקווה"><option value="צפת"><option value="קלנסווה"><option value="קריית אונו">
+        <option value="קריית אתא"><option value="קריית ביאליק"><option value="קריית גת"><option value="קריית ים"><option value="קריית מוצקין">
+        <option value="קריית מלאכי"><option value="קריית שמונה"><option value="ראש העין"><option value="ראשון לציון"><option value="רהט">
+        <option value="רחובות"><option value="רמלה"><option value="רמת גן"><option value="רמת השרון"><option value="רעננה">
+        <option value="שדרות"><option value="שפרעם"><option value="תל אביב-יפו">
+    </datalist>
 
     <div id="authScreen" class="auth-overlay">
         <div class="auth-container">
@@ -189,7 +228,8 @@
         <div class="form-container">
             <h3>🥂 יצירת מפגש חברתי חדש</h3>
             <div id="newSocialGameForm">
-                <input type="text" id="socialCity" class="app-input" placeholder="🏙️ עיר / אזור המפגש" required>
+                <!-- בחירת עיר עם השלמה אוטומטית מכל ערי ישראל -->
+                <input type="text" id="socialCity" list="israelCities" class="app-input" placeholder="🏙️ הקלד או בחר עיר ברשימה..." required>
                 
                 <select id="socialEventType" class="app-input" required>
                     <option value="" disabled selected>-- בחר סוג בילוי --</option>
@@ -246,7 +286,26 @@
             </div>
         </div>
 
-        <h2 style="color: #2c3e50; padding-right: 15px;">🔥 מפגשים חברתיים פתוחים:</h2>
+        <h2 style="color: #2c3e50; padding-right: 15px; margin-bottom: 5px;">🔥 מפגשים חברתיים פתוחים:</h2>
+        
+        <!-- סרגל סינון למפגשים חברתיים -->
+        <div class="social-filter-bar">
+            <input type="text" id="filterSocialCity" list="israelCities" placeholder="🔍 סנן לפי עיר..." oninput="filterSocialList()">
+            <select id="filterSocialType" onchange="filterSocialList()">
+                <option value="all">🎭 כל סוגי הבילוי</option>
+                <option value="יציאה לבר/פאב">🍻 ברים ופאבים</option>
+                <option value="מסעדה">🍽️ מסעדות / אוכל</option>
+                <option value="בית קפה">☕ בית קפה</option>
+                <option value="ים">🏖️ ים</option>
+                <option value="צפייה במשחק">📺 צפייה במשחקים</option>
+                <option value="הליכה">🚶‍♂️ הליכה</option>
+                <option value="ריצה">🏃‍♀️ ריצה</option>
+                <option value="משחקי קופסה">🎲 משחקי קופסה</option>
+                <option value="גיימינג">🎮 גיימינג</option>
+                <option value="טיול בטבע">🏕️ טיול בטבע</option>
+            </select>
+        </div>
+
         <div id="socialGamesList" class="games-container"></div>
     </div>
 
@@ -275,10 +334,10 @@
 
     <div id="toastNotification">התראה חדשה!</div>
 
-    <script src="js/lang.js?v=7.1"></script>
-    <script src="js/app.js?v=7.1"></script>
-    <script src="js/auth.js?v=7.1"></script>
-    <script src="js/chat.js?v=7.1"></script>
+    <script src="js/lang.js?v=7.2"></script>
+    <script src="js/app.js?v=7.2"></script>
+    <script src="js/auth.js?v=7.2"></script>
+    <script src="js/chat.js?v=7.2"></script>
 
 </body>
 </html>
