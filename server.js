@@ -15,9 +15,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// חיבור לשרת הענן
 const sqlConfig = {
-    server: 'SportMatchDB.mssql.somee.com', 
+    server: 'MeetVibe.mssql.somee.com', 
     database: 'MeetVibe',
     user: 'shakedadon_SQLLogin_1',
     password: 'vh6n15djcv',

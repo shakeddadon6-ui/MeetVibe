@@ -2,7 +2,7 @@ const sql = require('mssql');
 
 const sqlConfig = {
     server: 'SportMatchDB.mssql.somee.com', 
-    database: 'SportMatchDB',
+    database: 'MeetVibe', // <--- כאן השם המעודכן
     user: 'shakedadon_SQLLogin_1',
     password: 'vh6n15djcv',
     options: {
