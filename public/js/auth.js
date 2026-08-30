@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ auth.js - ניהול משתמשים והתחברות
+// קובץ auth.js - ניהול משתמשים והתחברות (דו-לשוני)
 // ==========================================
 
 function switchAuthTab(tab) {
@@ -42,17 +42,17 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         const data = await res.json();
         
         if(res.ok) { 
-            alert("נרשמת בהצלחה! בבקשה התחבר."); 
+            alert(t("authSuccess")); 
             switchAuthTab('login'); 
             document.getElementById('loginPhone').value = phone; 
         } else { 
-            alert(data.error || "שגיאה בהרשמה."); 
+            alert(data.code ? t(data.code) : data.error); 
             if(data.code === 'already_exists') { 
                 switchAuthTab('login'); 
                 document.getElementById('loginPhone').value = phone; 
             } 
         }
-    } catch(err) { alert("❌ תקלת תקשורת מול השרת."); }
+    } catch(err) { alert(t("netError")); }
 });
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -76,13 +76,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             myUsername = data.userName; 
             showMainApp(); 
         } else { 
-            alert(data.error || "תקלה בהתחברות."); 
+            alert(data.code ? t(data.code) : data.error); 
             if(data.code === 'not_found') { 
                 switchAuthTab('register'); 
                 document.getElementById('regPhone').value = phone; 
             } 
         }
-    } catch(err) { alert("תקלה בהתחברות למערכת."); }
+    } catch(err) { alert(t("loginError")); }
 });
 
 document.getElementById('forgotForm').addEventListener('submit', async (e) => {
@@ -97,13 +97,13 @@ document.getElementById('forgotForm').addEventListener('submit', async (e) => {
         const data = await res.json();
         
         if(res.ok) {
-            alert("✅ הסיסמה שונתה בהצלחה!"); 
+            alert(t("resetSuccess")); 
             switchAuthTab('login');
             document.getElementById('loginPhone').value = phone;
         } else {
-            alert(data.error || "❌ המספר הזה לא קיים במערכת."); 
+            alert(t("resetNotFound")); 
         }
-    } catch(err) { alert("❌ תקלת תקשורת מול השרת."); }
+    } catch(err) { alert(t("netError")); }
 });
 
 function logout() { 
