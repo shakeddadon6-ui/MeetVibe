@@ -96,13 +96,13 @@ function setLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('sportMatchLang', lang);
     document.documentElement.dir = (lang === 'he') ? 'rtl' : 'ltr';
-    document.documentElement.lang = lang; // זה אמור לעזור עם לוח השנה בדפדפנים מודרניים
+    document.documentElement.lang = lang; 
     
-const langBtn = document.getElementById('langToggleBtn');
-if (langBtn) { langBtn.innerText = (lang === 'he') ? 'English (EN)' : 'עברית (HE)'; }
+    const langBtn = document.getElementById('langToggleBtn');
+    if (langBtn) { langBtn.innerText = (lang === 'he') ? 'English (EN)' : 'עברית (HE)'; }
 
-const authLangBtn = document.getElementById('authLangToggleBtn');
-if (authLangBtn) { authLangBtn.innerText = (lang === 'he') ? 'English (EN)' : 'עברית (HE)'; }
+    const authLangBtn = document.getElementById('authLangToggleBtn');
+    if (authLangBtn) { authLangBtn.innerText = (lang === 'he') ? 'English (EN)' : 'עברית (HE)'; }
 
     // עדכון טקסטים רגילים
     document.querySelectorAll('[data-i18n]').forEach(el => { el.innerText = t(el.getAttribute('data-i18n')); });
@@ -110,6 +110,12 @@ if (authLangBtn) { authLangBtn.innerText = (lang === 'he') ? 'English (EN)' : '�
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
     // עדכון לייבלים (עבור optgroup)
     document.querySelectorAll('[data-i18n-label]').forEach(el => { el.label = t(el.getAttribute('data-i18n-label')); });
+
+    // תרגום דינמי לכפתור חסומים במידה וקיים במסך הראשי
+    const blockedBtn = document.querySelector('button[onclick="openBlockedUsers()"]');
+    if (blockedBtn) {
+        blockedBtn.innerHTML = (lang === 'he') ? '🚫 חסומים' : '🚫 Blocked';
+    }
 
     const savedUsername = localStorage.getItem('sportMatchUser');
     if (savedUsername) {
