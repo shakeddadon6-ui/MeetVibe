@@ -437,14 +437,44 @@ async function loadAdminPlayers() {
     if (!container) return;
     
     try {
-        const res = await fetch('/api/admin/players', { headers: getAuthHeaders() });
-        if (!res.ok) {
+        // שליפת משתמשים ודיווחים במקביל
+        const [playersRes, reportsRes] = await Promise.all([
+            fetch('/api/admin/players', { headers: getAuthHeaders() }),
+            fetch('/api/admin/reports', { headers: getAuthHeaders() })
+        ]);
+
+        if (!playersRes.ok || !reportsRes.ok) {
             container.innerHTML = `<p style="color:red; text-align:center;">אין לך הרשאה לצפות בפאנל זה.</p>`;
             return;
         }
-        const players = await res.json();
+
+        const players = await playersRes.json();
+        const reports = await reportsRes.json();
         
-        let html = `<h3 style="margin-bottom: 15px; color: #2c3e50;">👥 רשומים במערכת (${players.length})</h3>`;
+        let html = '';
+
+        // הצגת התראות אדומות על דיווחים חדשים אם יש
+        if (reports.length > 0) {
+            html += `
+                <div style="background: #fde8e8; border: 2px solid #e74c3c; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <h3 style="color: #c0392b; margin-top: 0; margin-bottom: 10px;">🚨 דיווחים ממתינים לטיפול (${reports.length})</h3>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">`;
+            
+            reports.forEach(r => {
+                html += `
+                    <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #f5c6cb; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>מדווח:</strong> ${r.ReporterName} | <strong>מוזהר/מדווח עליו:</strong> <span style="color: #c0392b;">${r.ReportedName}</span><br>
+                            <strong>סיבה:</strong> ${r.Reason} <br><small style="color: #7f8c8d;">${r.ReportDateStr}</small>
+                        </div>
+                        <button onclick="deletePlayer(${r.ReportedUserID})" style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9em;">מחק משתמש פוגע</button>
+                    </div>`;
+            });
+            html += `</div></div>`;
+        }
+
+        // רשימת המשתמשים הרגילה
+        html += `<h3 style="margin-bottom: 15px; color: #2c3e50;">👥 רשומים במערכת (${players.length})</h3>`;
         html += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
         
         players.forEach(p => {
@@ -458,6 +488,7 @@ async function loadAdminPlayers() {
                 </div>`;
         });
         html += `</div>`;
+        
         container.innerHTML = html;
     } catch (err) {
         container.innerHTML = `<p style="color:red; text-align:center;">שגיאה בטעינת הנתונים מהשרת.</p>`;
@@ -483,3 +514,25 @@ async function deletePlayer(playerId) {
     }
 }
 window.deletePlayer = deletePlayer;
+
+// פתיחת חלון דיווח על משתמש
+function openReportModal(reportedUserId, reportedUserName) {
+    const reason = prompt(`למה אתה רוצה לדווח על ${reportedUserName}?\n(לדוגמה: התנהגות לא הולמת, הטרדה וכו')`);
+    if (!reason || reason.trim() === '') return;
+
+    fetch('/api/reports', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reportedUserId, reason })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("הדיווח נשלח בהצלחה למנהלי המערכת. תודה שאתה שומר על הקהילה.");
+        } else {
+            alert(data.error || "שגיאה בשליחת הדיווח");
+        }
+    })
+    .catch(() => alert("שגיאת רשת"));
+}
+window.openReportModal = openReportModal;
