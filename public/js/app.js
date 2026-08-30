@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ app.js - מנגנון הליבה (מפגשים ללא מפה)
+// קובץ app.js - מנגנון הליבה (מפגשים ללא מפה + מאגר ערים ממשלתי)
 // ==========================================
 
 let myUserId = localStorage.getItem('sportMatchUserId');
@@ -14,6 +14,9 @@ window.onload = function() {
         document.getElementById('mainApp').style.display = 'none'; 
     }
     
+    // טעינה אוטומטית של כל הערים והיישובים בישראל מהמאגר הממשלתי
+    loadIsraelCities();
+    
     // מילוי שעות ודקות
     const hourSelect = document.getElementById('gameHour');
     if (hourSelect) {
@@ -24,6 +27,30 @@ window.onload = function() {
         for (let i = 0; i < 60; i++) minuteSelect.innerHTML += `<option value="${String(i).padStart(2, '0')}">${String(i).padStart(2, '0')}</option>`;
     }
 };
+
+// פונקציה לשליפת מאגר הערים הממשלתי לעדכון ה-datalist
+async function loadIsraelCities() {
+    try {
+        const response = await fetch('https://raw.githubusercontent.com/Binternet/israel-cities/master/israel-cities.json');
+        const cities = await response.json();
+        
+        const datalist = document.getElementById('israelCities');
+        if (!datalist) return;
+        
+        datalist.innerHTML = ''; 
+        
+        cities.forEach(cityObj => {
+            const cityName = cityObj.name || cityObj.שם_ישוב;
+            if (cityName) {
+                const option = document.createElement('option');
+                option.value = cityName.trim();
+                datalist.appendChild(option);
+            }
+        });
+    } catch (err) {
+        console.error("שגיאה בטעינת מאגר הערים:", err);
+    }
+}
 
 function showMainApp() {
     document.getElementById('authScreen').style.display = 'none';
@@ -144,6 +171,7 @@ function createGameCardHtml(game, diffMins, formattedDate, timeString) {
     if(game.EventType.includes('כדורגל')) iconStr = '⚽';
     if(game.EventType.includes('כדורסל')) iconStr = '🏀';
     if(game.EventType.includes('טניס')) iconStr = '🎾';
+    if(game.EventType.includes('כדורעף')) iconStr = '🏐';
     
     return `<div class="court-name">${iconStr} ${game.EventType} ב${game.City}</div>
             <div class="detail"><strong>👤 יוצר:</strong> ${game.CreatorName}</div>
