@@ -10,28 +10,30 @@ const translations = {
         phonePlaceholder: "מספר טלפון", passwordPlaceholder: "סיסמה", namePlaceholder: "שם מלא", choosePasswordPlaceholder: "בחר סיסמה", newPasswordPlaceholder: "סיסמה חדשה",
         
         agePlaceholder: "גיל", minAgePlaceholder: "גיל מינימלי", maxAgePlaceholder: "גיל מקסימלי",
+        genderPlaceholder: "בחר מגדר", genderMale: "זכר", genderFemale: "נקבה", genderOther: "אחר",
         
-        loginBtn: "היכנס למגרש", registerBtn: "צור משתמש חדש", resetTitle: "איפוס סיסמה", updatePasswordBtn: "עדכן סיסמה",
+        loginBtn: "היכנס למערכת", registerBtn: "צור משתמש חדש", resetTitle: "איפוס סיסמה", updatePasswordBtn: "עדכן סיסמה",
         forgotPassword: "שכחתי סיסמה 🤔", backToLogin: "חזור להתחברות",
-        welcome: "👋 אהלן {name}! מה נשחק היום?",
+        welcome: "👋 אהלן {name}! מה בא לך לעשות היום?",
         
         // התוספת לסינון
-        filterAll: "🌍 הכל", filterBasketball: "🏀 כדורסל", filterFootball: "⚽ כדורגל", filterMyGames: "👤 המשחקים שלי",
+        filterAll: "🌍 הכל", filterBasketball: "🏀 כדורסל", filterFootball: "⚽ כדורגל", 
+        filterPub: "🍻 ברים", filterPark: "🌳 פארקים", filterMyGames: "👤 הפעילויות שלי",
         
-        formTitle: "➕ פתח משחק חדש", searchPlaceholder: "🔍 הקלד שם מגרש לחיפוש מהיר...", selectPlaceholder: "-- בחר מגרש --", searchingLocation: "מחפש מיקום... 📍",
-        missingPlayersPlaceholder: "כמה שחקנים חסרים?", btnNow: "⚡ עכשיו", btnFuture: "🕰️ עתידי", submitGameBtn: "פתח משחק!",
-        activeGamesTitle: "🔥 משחקים שקורים עכשיו:", noGames: "אין משחקים פתוחים. פתח אחד!", creator: "👤 יוצר:",
-        missingBadge: "🔥 חסרים {count} שחקנים!", joinBtn: "🙋‍♂️ אני בא!", chatBtn: "💬 צ'אט", logout: "🚪 התנתק",
+        formTitle: "➕ צור מפגש חדש", searchPlaceholder: "🔍 הקלד שם מיקום לחיפוש...", selectPlaceholder: "-- בחר מיקום --", searchingLocation: "מחפש מיקום... 📍",
+        missingPlayersPlaceholder: "כמה אנשים חסרים?", btnNow: "⚡ עכשיו", btnFuture: "🕰️ עתידי", submitGameBtn: "צור מפגש!",
+        activeGamesTitle: "🔥 מפגשים שקורים עכשיו:", noGames: "אין מפגשים פתוחים. צור אחד!", creator: "👤 יוצר:",
+        missingBadge: "🔥 מחפשים עוד {count} חבר'ה!", joinBtn: "🙋‍♂️ אני בא!", chatBtn: "💬 צ'אט", logout: "🚪 התנתק",
         nightMode: "🌙 לילה", dayMode: "☀️ יום", chatTitle: "צ'אט", chatPlaceholder: "הקלד הודעה...",
-        gameCreatedTitle: "🎉 המשחק נפתח!", whatsappBtn: "💬 שלח בוואטסאפ", closeBtn: "סגור",
+        gameCreatedTitle: "🎉 המפגש נפתח!", whatsappBtn: "💬 שלח בוואטסאפ", closeBtn: "סגור",
         
-        selectCourtAlert: "📍 היי! שכחת לבחור מגרש מהרשימה.", missingPlayersAlert: "👥 היי! אנא הזן כמה שחקנים חסרים.",
+        selectCourtAlert: "📍 היי! שכחת לבחור מיקום מהרשימה.", missingPlayersAlert: "👥 היי! אנא הזן כמה אנשים חסרים.",
         joinedSuccess: "הצטרפת בהצלחה! מעביר אותך לצ'אט...", timePastError: "❌ שגיאה: בחרת שעה שכבר עברה.",
-        creatingGame: "פותח משחק... ⏳", serverError: "❌ השרת דחה את הבקשה: ", netError: "❌ תקלת תקשורת מול השרת.",
+        creatingGame: "יוצר מפגש... ⏳", serverError: "❌ השרת דחה את הבקשה: ", netError: "❌ תקלת תקשורת מול השרת.",
         youAreHere: "📍 אתה כאן!", distanceKm: 'ק"מ', awayFromYou: 'ק"מ ממך', 
         
         // טקסטים חדשים למשחקי עבר
-        happeningNow: '🟢 קורה עכשיו (ב-{time})', futureGame: '🕰️ עתידי להיום (ב-{time})', pastGame: '⚪ הסתיים (היה ב-{time})', cancelledGame: '❌ משחק שבוטל',
+        happeningNow: '🟢 קורה עכשיו (ב-{time})', futureGame: '🕰️ עתידי להיום (ב-{time})', pastGame: '⚪ הסתיים (היה ב-{time})', cancelledGame: '❌ מפגש שבוטל',
         
         chatMe: "אני", chatEmpty: "אין הודעות. תגיד שלום! 👋",
         
@@ -42,9 +44,9 @@ const translations = {
         resetSuccess: "✅ הסיסמה שונתה בהצלחה!",
         resetNotFound: "❌ המספר הזה לא קיים במערכת.",
 
-        cancelGameBtn: "❌ בטל משחק", markFullBtn: "✅ סמן כמלא",
-        confirmCancel: "האם אתה בטוח שברצונך לבטל את המשחק?", confirmFull: "האם אתה בטוח שברצונך לסמן את המשחק כמלא?",
-        gameCancelledStatus: "המשחק בוטל בהצלחה ונמחק מהמפה.", gameFullStatus: "המשחק סומן כמלא בהצלחה!",
+        cancelGameBtn: "❌ בטל מפגש", markFullBtn: "✅ סמן כמלא",
+        confirmCancel: "האם אתה בטוח שברצונך לבטל את המפגש?", confirmFull: "האם אתה בטוח שברצונך לסמן את המפגש כמלא?",
+        gameCancelledStatus: "המפגש בוטל בהצלחה ונמחק מהמפה.", gameFullStatus: "המפגש סומן כמלא בהצלחה!",
         leaveGameBtn: "❌ ביטול הגעה", leftSuccess: "ביטלת את השתתפותך בהצלחה. נתראה בפעם הבאה!"
     },
     en: {
@@ -52,28 +54,30 @@ const translations = {
         phonePlaceholder: "Phone Number", passwordPlaceholder: "Password", namePlaceholder: "Full Name", choosePasswordPlaceholder: "Choose Password", newPasswordPlaceholder: "New Password",
         
         agePlaceholder: "Age", minAgePlaceholder: "Min Age", maxAgePlaceholder: "Max Age",
+        genderPlaceholder: "Select Gender", genderMale: "Male", genderFemale: "Female", genderOther: "Other",
         
-        loginBtn: "Enter Court", registerBtn: "Create Account", resetTitle: "Reset Password", updatePasswordBtn: "Update Password",
+        loginBtn: "Enter System", registerBtn: "Create Account", resetTitle: "Reset Password", updatePasswordBtn: "Update Password",
         forgotPassword: "Forgot password? 🤔", backToLogin: "Back to Login",
-        welcome: "👋 Hey {name}! What are we playing today?",
+        welcome: "👋 Hey {name}! What do you want to do today?",
         
         // Filter Additions
-        filterAll: "🌍 All", filterBasketball: "🏀 Basketball", filterFootball: "⚽ Football", filterMyGames: "👤 My Games",
+        filterAll: "🌍 All", filterBasketball: "🏀 Basketball", filterFootball: "⚽ Football", 
+        filterPub: "🍻 Pubs", filterPark: "🌳 Parks", filterMyGames: "👤 My Activities",
         
-        formTitle: "➕ Open New Game", searchPlaceholder: "🔍 Search court...", selectPlaceholder: "-- Select Court --", searchingLocation: "Searching location... 📍",
-        missingPlayersPlaceholder: "Missing players?", btnNow: "⚡ Now", btnFuture: "🕰️ Later", submitGameBtn: "Open Game!",
-        activeGamesTitle: "🔥 Active Games Right Now:", noGames: "No open games. Open one!", creator: "👤 Creator:",
-        missingBadge: "🔥 Missing {count} players!", joinBtn: "🙋‍♂️ I'm in!", chatBtn: "💬 Chat", logout: "🚪 Logout",
+        formTitle: "➕ Open New Event", searchPlaceholder: "🔍 Search location...", selectPlaceholder: "-- Select Location --", searchingLocation: "Searching location... 📍",
+        missingPlayersPlaceholder: "Missing people?", btnNow: "⚡ Now", btnFuture: "🕰️ Later", submitGameBtn: "Create Event!",
+        activeGamesTitle: "🔥 Active Events Right Now:", noGames: "No open events. Create one!", creator: "👤 Creator:",
+        missingBadge: "🔥 Looking for {count} more!", joinBtn: "🙋‍♂️ I'm in!", chatBtn: "💬 Chat", logout: "🚪 Logout",
         nightMode: "🌙 Dark", dayMode: "☀️ Light", chatTitle: "Chat", chatPlaceholder: "Type a message...",
-        gameCreatedTitle: "🎉 Game Created!", whatsappBtn: "💬 Share on WhatsApp", closeBtn: "Close",
+        gameCreatedTitle: "🎉 Event Created!", whatsappBtn: "💬 Share on WhatsApp", closeBtn: "Close",
         
-        selectCourtAlert: "📍 Hey! You forgot to select a court.", missingPlayersAlert: "👥 Please enter missing players.",
+        selectCourtAlert: "📍 Hey! You forgot to select a location.", missingPlayersAlert: "👥 Please enter missing people.",
         joinedSuccess: "Successfully joined! Opening chat...", timePastError: "❌ Error: Time already passed.",
-        creatingGame: "Opening game... ⏳", serverError: "❌ Server error: ", netError: "❌ Network error.",
+        creatingGame: "Creating event... ⏳", serverError: "❌ Server error: ", netError: "❌ Network error.",
         youAreHere: "📍 You are here!", distanceKm: 'km', awayFromYou: 'km away', 
         
         // New texts for history
-        happeningNow: '🟢 Happening now (at {time})', futureGame: '🕰️ Future today (at {time})', pastGame: '⚪ Ended (was at {time})', cancelledGame: '❌ Cancelled Game',
+        happeningNow: '🟢 Happening now (at {time})', futureGame: '🕰️ Future today (at {time})', pastGame: '⚪ Ended (was at {time})', cancelledGame: '❌ Cancelled Event',
         
         chatMe: "Me", chatEmpty: "No messages yet. Say hi! 👋",
         
@@ -84,10 +88,10 @@ const translations = {
         resetSuccess: "✅ Password reset successfully!",
         resetNotFound: "❌ This phone number does not exist.",
 
-        cancelGameBtn: "❌ Cancel Game", markFullBtn: "✅ Mark Full",
-        confirmCancel: "Are you sure you want to cancel this game?", confirmFull: "Are you sure you want to mark this game as full?",
-        gameCancelledStatus: "Game cancelled successfully.", gameFullStatus: "Game marked as full successfully!",
-        leaveGameBtn: "❌ Leave Game", leftSuccess: "Successfully left the game. See you next time!"
+        cancelGameBtn: "❌ Cancel Event", markFullBtn: "✅ Mark Full",
+        confirmCancel: "Are you sure you want to cancel this event?", confirmFull: "Are you sure you want to mark this event as full?",
+        gameCancelledStatus: "Event cancelled successfully.", gameFullStatus: "Event marked as full successfully!",
+        leaveGameBtn: "❌ Leave Event", leftSuccess: "Successfully left the event. See you next time!"
     }
 };
 
