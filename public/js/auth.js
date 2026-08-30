@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ auth.js - ניהול משתמשים והתחברות מתורגם 100%
+// קובץ auth.js - ניהול משתמשים והתחברות
 // ==========================================
 
 function switchAuthTab(tab) {
@@ -30,30 +30,29 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     const fullName = document.getElementById('regName').value; 
     const phone = document.getElementById('regPhone').value; 
     const age = document.getElementById('regAge').value;
-    const gender = document.getElementById('regGender').value; // משיכת המגדר מהטופס
+    const gender = document.getElementById('regGender').value;
     const password = document.getElementById('regPassword').value;
     
     try {
         const res = await fetch('/api/register', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
-            // הוספת המגדר לשליחה לשרת
             body: JSON.stringify({ fullName, phone, password, age: parseInt(age), gender: gender }) 
         });
         const data = await res.json();
         
         if(res.ok) { 
-            alert(t("authSuccess")); 
+            alert("נרשמת בהצלחה! בבקשה התחבר."); 
             switchAuthTab('login'); 
             document.getElementById('loginPhone').value = phone; 
         } else { 
-            alert(data.code ? t(data.code) : data.error); 
+            alert(data.error || "שגיאה בהרשמה."); 
             if(data.code === 'already_exists') { 
                 switchAuthTab('login'); 
                 document.getElementById('loginPhone').value = phone; 
             } 
         }
-    } catch(err) { alert(t("netError")); }
+    } catch(err) { alert("❌ תקלת תקשורת מול השרת."); }
 });
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -71,19 +70,19 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             localStorage.setItem('sportMatchUserId', data.userId); 
             localStorage.setItem('sportMatchUser', data.userName); 
             localStorage.setItem('sportMatchUserAge', data.userAge);
-            localStorage.setItem('sportMatchUserGender', data.userGender); // שמירת המגדר בזיכרון
+            localStorage.setItem('sportMatchUserGender', data.userGender);
             
             myUserId = data.userId; 
             myUsername = data.userName; 
             showMainApp(); 
         } else { 
-            alert(data.code ? t(data.code) : data.error); 
+            alert(data.error || "תקלה בהתחברות."); 
             if(data.code === 'not_found') { 
                 switchAuthTab('register'); 
                 document.getElementById('regPhone').value = phone; 
             } 
         }
-    } catch(err) { alert(t("loginError")); }
+    } catch(err) { alert("תקלה בהתחברות למערכת."); }
 });
 
 document.getElementById('forgotForm').addEventListener('submit', async (e) => {
@@ -98,20 +97,20 @@ document.getElementById('forgotForm').addEventListener('submit', async (e) => {
         const data = await res.json();
         
         if(res.ok) {
-            alert(t("resetSuccess")); 
+            alert("✅ הסיסמה שונתה בהצלחה!"); 
             switchAuthTab('login');
             document.getElementById('loginPhone').value = phone;
         } else {
-            alert(t("resetNotFound")); 
+            alert(data.error || "❌ המספר הזה לא קיים במערכת."); 
         }
-    } catch(err) { alert(t("netError")); }
+    } catch(err) { alert("❌ תקלת תקשורת מול השרת."); }
 });
 
 function logout() { 
     localStorage.removeItem('sportMatchUserId'); 
     localStorage.removeItem('sportMatchUser'); 
     localStorage.removeItem('sportMatchUserAge'); 
-    localStorage.removeItem('sportMatchUserGender'); // ניקוי המגדר בהתנתקות
+    localStorage.removeItem('sportMatchUserGender'); 
     location.reload(); 
 }
 window.logout = logout;
