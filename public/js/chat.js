@@ -65,7 +65,10 @@ function appendMessageToDOM(msg) {
 
     let isUserAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
 
-    const isMe = msg.SenderName === myUsername;
+    // תיקון: שליפת שם המשתמש המחובר ישירות מ-localStorage
+    const currentUsername = localStorage.getItem('sportMatchUser') || '';
+    const isMe = msg.SenderName === currentUsername;
+
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${isMe ? 'msg-me' : 'msg-other'}`;
     
@@ -101,10 +104,13 @@ function sendChatMessage() {
     const text = input.value.trim();
     if (!text || !currentChatGameId) return;
     
+    // תיקון: שליפת שם המשתמש ישירות מ-localStorage
+    const senderName = localStorage.getItem('sportMatchUser') || 'משתמש';
+
     // שליחת הודעה ישירות דרך Socket.io לשרת בזמן אמת!
     socket.emit('send_message', {
         gameId: currentChatGameId,
-        senderName: myUsername,
+        senderName: senderName,
         messageText: text
     });
 
