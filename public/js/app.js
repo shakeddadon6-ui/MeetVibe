@@ -1,24 +1,33 @@
 // ==========================================
-// קובץ app.js - מנגנון הליבה (מפגשים ללא מפה + מאגר ערים ממשלתי חכם)
+// קובץ app.js - מנגנון הליבה (מעודכן לתמיכה ב-JWT Token)
 // ==========================================
 
 let myUserId = localStorage.getItem('sportMatchUserId');
 let myUsername = localStorage.getItem('sportMatchUser');
 let allGames = [];
 let myHistoryGames = [];
-let globalCities = []; // מערך לשמירת נתוני הערים מהמאגר הממשלתי
+let globalCities = []; 
+
+// פונקציית עזר להוספת הטוקן לכל בקשה לשרת
+function getAuthHeaders() {
+    const token = localStorage.getItem('sportMatchToken');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+    };
+}
+window.getAuthHeaders = getAuthHeaders; // נחשוף אותה גם לקובץ הצאט
 
 window.onload = function() {
-    if (myUserId && myUsername) { showMainApp(); } 
-    else { 
+    if (myUserId && myUsername && localStorage.getItem('sportMatchToken')) { 
+        showMainApp(); 
+    } else { 
         document.getElementById('authScreen').style.display = 'flex'; 
         document.getElementById('mainApp').style.display = 'none'; 
     }
     
-    // טעינה אוטומטית של כל הערים והיישובים בישראל מהמאגר הממשלתי
     fetchIsraelCities();
     
-    // מילוי שעות ודקות
     const hourSelect = document.getElementById('gameHour');
     if (hourSelect) {
         for (let i = 0; i < 24; i++) hourSelect.innerHTML += `<option value="${String(i).padStart(2, '0')}">${String(i).padStart(2, '0')}</option>`;
@@ -29,7 +38,6 @@ window.onload = function() {
     }
 };
 
-// פונקציה למשיכת נתונים ממאגר הערים הממשלתי ושמירתם גם באנגלית
 async function fetchIsraelCities() {
     try {
         const response = await fetch('https://data.gov.il/api/3/action/datastore_search?resource_id=5c78e9fa-c2e2-4771-93ff-7f400a12f7ba&limit=1500');
@@ -48,26 +56,20 @@ async function fetchIsraelCities() {
                 })
                 .filter(city => city.he.length > 0 && city.he !== 'לא רשום');
             
-            // עדכון ה-datalist מיד לאחר הטעינה לפי השפה הנוכחית
             if (typeof currentLang !== 'undefined') {
                 updateCityDatalist(currentLang);
             } else {
                 updateCityDatalist('he');
             }
         }
-    } catch (error) {
-        console.error("שגיאה במשיכת נתונים ממאגר הערים הממשלתי:", error);
-    }
+    } catch (error) { console.error("שגיאה במשיכת נתונים ממאגר הערים:", error); }
 }
 
-// פונקציה לעדכון הרשימה ב-HTML לפי השפה הנבחרת
 function updateCityDatalist(lang) {
     const datalist = document.getElementById('israelCities');
     if (!datalist || globalCities.length === 0) return;
     
     datalist.innerHTML = '';
-    
-    // מיון לפי שפה נוכחית והכנסה ל-Datalist
     const sortedCities = [...globalCities].sort((a, b) => a[lang].localeCompare(b[lang]));
     
     sortedCities.forEach(city => {
@@ -78,7 +80,7 @@ function updateCityDatalist(lang) {
         }
     });
 }
-window.updateCityDatalist = updateCityDatalist; // חשיפת הפונקציה לקובץ lang.js
+window.updateCityDatalist = updateCityDatalist; 
 
 function showMainApp() {
     document.getElementById('authScreen').style.display = 'none';
@@ -87,7 +89,6 @@ function showMainApp() {
     const savedUsername = localStorage.getItem('sportMatchUser');
     if (savedUsername) { document.getElementById('welcomeMessage').innerText = "אהלן " + savedUsername + "!"; }
 
-    // קביעת תאריך ושעה לברירת מחדל בטופס היצירה
     const now = new Date(); 
     const dateInput = document.getElementById('gameDate');
     if (dateInput) dateInput.value = now.toISOString().split('T')[0];
@@ -105,14 +106,15 @@ window.toggleDarkMode = toggleDarkMode;
 
 async function loadGames() {
     try { 
+        // רשימה פתוחה - אין צורך בטוקן
         const response = await fetch('/api/games?t=' + Date.now()); 
         allGames = await response.json(); 
         
         if (myUserId) {
-            const histRes = await fetch(`/api/games/history/${myUserId}?t=` + Date.now());
+            // היסטוריה אישית - דורשת טוקן אבטחה
+            const histRes = await fetch(`/api/games/history/${myUserId}?t=` + Date.now(), { headers: getAuthHeaders() });
             myHistoryGames = await histRes.json();
         }
-
         filterGamesList(); 
     } catch (error) { console.error("שגיאה בטעינת המפגשים", error); }
 }
@@ -136,8 +138,6 @@ function filterGamesList() {
         if (matchCity && matchType) {
             const parts = game.StartTimeStr.split(/[- :]/); 
             const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
-            
-            // תאריך פורמט בעברית. אפשר גם לשנות לאנגלית ע"י שינוי 'he-IL' אם רוצים
             const formattedDate = gameDate.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' });
             const timeString = `${String(gameDate.getHours()).padStart(2, '0')}:${String(gameDate.getMinutes()).padStart(2, '0')}`;
             const diffMins = Math.floor((gameDate - new Date()) / 60000);
@@ -151,7 +151,6 @@ function filterGamesList() {
     });
 
     if (matchedCount === 0) {
-        // מתורגם באמצעות קובץ lang.js במידת האפשר, או נופל חזרה לעברית כברירת מחדל
         const noGamesTxt = window.t ? window.t("noGames") : "לא נמצאו מפגשים שתואמים את הסינון שבחרת.";
         container.innerHTML = `<p style="text-align:center; color:#7f8c8d; padding:20px;">${noGamesTxt}</p>`;
     }
@@ -173,7 +172,6 @@ function createGameCardHtml(game, diffMins, formattedDate, timeString) {
     const isCreator = parseInt(myUserId) === game.CreatorPlayerID;
     const joinedPlayers = game.JoinedPlayersStr ? game.JoinedPlayersStr.split(',').filter(id => id !== '') : [];
     const hasJoined = joinedPlayers.includes(String(myUserId));
-    
     const chatName = game.EventType + ' ב' + game.City;
     
     let joinControlsHtml = '';
@@ -195,7 +193,6 @@ function createGameCardHtml(game, diffMins, formattedDate, timeString) {
     }
 
     const chatBtn = `<button class="chat-btn" onclick="openChat(${game.GameID}, '${chatName}')">💬 צ'אט לקביעת מיקום</button>`;
-
     const ageHtml = `<div class="detail" style="color: #8e44ad; font-weight: bold; font-size: 0.95em; margin-top: 5px;">🎯 גילאים: ${game.MinAge} - ${game.MaxAge} | מגדר: ${game.PrefGender}</div>`;
     
     let iconStr = '🥂';
@@ -215,7 +212,11 @@ function createGameCardHtml(game, diffMins, formattedDate, timeString) {
 
 async function joinGame(gameId, courtName) {
     try {
-        const response = await fetch(`/api/games/${gameId}/join`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: myUserId }) });
+        const response = await fetch(`/api/games/${gameId}/join`, { 
+            method: 'PUT', 
+            headers: getAuthHeaders(), // שימוש בטוקן
+            body: JSON.stringify({ userId: myUserId }) 
+        });
         const data = await response.json();
         if (response.ok) { 
             showToast("הצטרפת בהצלחה! 🎉"); 
@@ -229,7 +230,11 @@ window.joinGame = joinGame;
 
 async function leaveGame(gameId) {
     try {
-        const response = await fetch(`/api/games/${gameId}/leave`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: myUserId }) });
+        const response = await fetch(`/api/games/${gameId}/leave`, { 
+            method: 'PUT', 
+            headers: getAuthHeaders(), // שימוש בטוקן
+            body: JSON.stringify({ userId: myUserId }) 
+        });
         const data = await response.json();
         if (response.ok) { 
             alert("עזבת את המפגש."); 
@@ -243,7 +248,11 @@ async function updateGameStatus(gameId, status) {
     const confirmMsg = status === 'Cancelled' ? "האם אתה בטוח שברצונך לבטל את המפגש?" : "האם המפגש מלא?";
     if (!confirm(confirmMsg)) return;
     try {
-        const response = await fetch(`/api/games/${gameId}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: myUserId, status: status }) });
+        const response = await fetch(`/api/games/${gameId}/status`, { 
+            method: 'PUT', 
+            headers: getAuthHeaders(), // שימוש בטוקן
+            body: JSON.stringify({ userId: myUserId, status: status }) 
+        });
         const data = await response.json();
         if (response.ok) { 
             alert(status === 'Cancelled' ? "המפגש בוטל." : "המפגש סומן כמלא."); 
@@ -262,15 +271,12 @@ async function createNewGame() {
     const prefGender = document.getElementById('gamePrefGender').value;
     const dateStr = document.getElementById('gameDate').value;
 
-    if (!city) { alert("אנא בחר או הקלד עיר."); return; }
-    if (!eventType) { alert("אנא בחר סוג בילוי/ספורט."); return; }
-    if (!dateStr) { alert("אנא בחר תאריך."); return; }
+    if (!city || !eventType || !dateStr) { alert("אנא מלא את כל שדות החובה."); return; }
     if (!missingPlayers || missingPlayers < 1) { alert("אנא הזן כמה אנשים חסרים."); return; }
     if (minAgeVal > maxAgeVal) { alert("הגיל המינימלי לא יכול להיות גדול מהמקסימלי."); return; }
 
     const hStr = document.getElementById('gameHour').value; 
     const mStr = document.getElementById('gameMinute').value; 
-    
     const now = new Date();
     const gameTime = new Date(dateStr);
     gameTime.setHours(parseInt(hStr), parseInt(mStr), 0, 0);
@@ -280,7 +286,6 @@ async function createNewGame() {
     const sqlStartTime = `${gameTime.getFullYear()}-${String(gameTime.getMonth() + 1).padStart(2, '0')}-${String(gameTime.getDate()).padStart(2, '0')} ${hStr}:${mStr}:00`;
 
     const payload = {
-        creatorPlayerId: parseInt(myUserId),
         city, eventType, missingPlayers: parseInt(missingPlayers), 
         minAge: minAgeVal, maxAge: maxAgeVal, prefGender, startTime: sqlStartTime
     };
@@ -290,7 +295,9 @@ async function createNewGame() {
         submitBtn.innerText = "יוצר מפגש..."; submitBtn.disabled = true; 
         
         const response = await fetch('/api/games', { 
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) 
+            method: 'POST', 
+            headers: getAuthHeaders(), // שימוש בטוקן 
+            body: JSON.stringify(payload) 
         });
         
         if(response.ok) { 
@@ -337,7 +344,7 @@ function showNotificationWithSound(message) {
 
 let lastKnownGamesCount = 0;
 async function checkBackgroundNotifications() {
-    if (!myUserId) return;
+    if (!myUserId || !localStorage.getItem('sportMatchToken')) return;
     try {
         const allGamesRes = await fetch('/api/games?t=' + Date.now());
         const currentGames = await allGamesRes.json();
@@ -348,11 +355,13 @@ async function checkBackgroundNotifications() {
         }
         lastKnownGamesCount = currentGames.length;
 
-        const histRes = await fetch(`/api/games/history/${myUserId}?t=` + Date.now());
+        // קריאה היסטורית הדורשת טוקן אבטחה
+        const histRes = await fetch(`/api/games/history/${myUserId}?t=` + Date.now(), { headers: getAuthHeaders() });
         const myGames = await histRes.json();
         
         for (const game of myGames) {
-            const chatRes = await fetch(`/api/games/${game.GameID}/chat?t=` + Date.now());
+            // צ'אט דורש טוקן אבטחה
+            const chatRes = await fetch(`/api/games/${game.GameID}/chat?t=` + Date.now(), { headers: getAuthHeaders() });
             const messages = await chatRes.json();
             
             if (messages && messages.length > 0) {

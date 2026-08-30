@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ auth.js - ניהול משתמשים והתחברות (דו-לשוני)
+// קובץ auth.js - ניהול משתמשים והתחברות (דו-לשוני + אבטחת JWT)
 // ==========================================
 
 function switchAuthTab(tab) {
@@ -67,6 +67,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         const data = await res.json();
         
         if(res.ok) { 
+            // שמירת הטוקן ופרטי המשתמש בהתחברות מוצלחת
+            localStorage.setItem('sportMatchToken', data.token); // <--- זה הטוקן שנוסף!
             localStorage.setItem('sportMatchUserId', data.userId); 
             localStorage.setItem('sportMatchUser', data.userName); 
             localStorage.setItem('sportMatchUserAge', data.userAge);
@@ -74,6 +76,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             
             myUserId = data.userId; 
             myUsername = data.userName; 
+            
             showMainApp(); 
         } else { 
             alert(data.code ? t(data.code) : data.error); 
@@ -107,6 +110,7 @@ document.getElementById('forgotForm').addEventListener('submit', async (e) => {
 });
 
 function logout() { 
+    localStorage.removeItem('sportMatchToken'); // <--- מחיקת הטוקן ביציאה מהמערכת
     localStorage.removeItem('sportMatchUserId'); 
     localStorage.removeItem('sportMatchUser'); 
     localStorage.removeItem('sportMatchUserAge'); 
