@@ -14,7 +14,55 @@
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
     <link rel="stylesheet" href="css/style.css">
     
-    <style> .lang-btn { background: #27ae60; color: white; margin-right: 5px; margin-left: 5px;} </style>
+    <style> 
+        .lang-btn { background: #27ae60; color: white; margin-right: 5px; margin-left: 5px;} 
+        
+        /* עיצוב לקוביות מסך הבית החדש */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+            padding: 10px;
+        }
+        .category-card {
+            color: white;
+            padding: 30px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        .category-card .icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        /* עיצוב כפתור החזרה מהמפה למסך הבית */
+        .back-btn {
+            background-color: #34495e;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            width: calc(100% - 20px);
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .back-btn:hover { background-color: #2c3e50; }
+    </style>
 </head>
 <body>
 
@@ -29,7 +77,7 @@
             <form id="loginForm" class="auth-form">
                 <input type="tel" id="loginPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
                 <input type="password" id="loginPassword" placeholder="סיסמה" data-i18n-placeholder="passwordPlaceholder" required>
-                <button type="submit" data-i18n="loginBtn">היכנס למגרש</button>
+                <button type="submit" data-i18n="loginBtn">היכנס למערכת</button>
                 <a class="forgot-pass-link" onclick="switchAuthTab('forgot')" data-i18n="forgotPassword">שכחתי סיסמה 🤔</a>
             </form>
             
@@ -37,6 +85,15 @@
                 <input type="text" id="regName" placeholder="שם מלא" data-i18n-placeholder="namePlaceholder" required>
                 <input type="tel" id="regPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
                 <input type="number" id="regAge" placeholder="גיל" data-i18n-placeholder="agePlaceholder" min="10" max="99" required>
+                
+                <!-- התוספת החדשה: בחירת מגדר -->
+                <select id="regGender" required style="margin-bottom: 10px; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; font-size: 1em;">
+                    <option value="" disabled selected>בחר מגדר</option>
+                    <option value="זכר">זכר</option>
+                    <option value="נקבה">נקבה</option>
+                    <option value="אחר">אחר</option>
+                </select>
+                
                 <input type="password" id="regPassword" placeholder="בחר סיסמה" data-i18n-placeholder="choosePasswordPlaceholder" required>
                 <button type="submit" data-i18n="registerBtn">צור משתמש חדש</button>
             </form>
@@ -51,7 +108,34 @@
         </div>
     </div>
 
-    <div id="mainApp">
+    <!-- התוספת החדשה: מסך הבית וקוביות הקטגוריות -->
+    <div id="homeScreen" style="display: none; padding: 20px; text-align: center; max-width: 600px; margin: 0 auto; padding-top: 40px;">
+        <h2 id="welcomeMessage" style="font-size: 2.2em; color: #2c3e50; margin-bottom: 5px;">ברוך הבא!</h2>
+        <h3 style="color: #7f8c8d; margin-bottom: 25px; font-weight: normal;">מה בא לך לעשות היום?</h3>
+        
+        <div class="category-grid">
+            <div class="category-card" onclick="openCategory('Basketball')" style="background: linear-gradient(135deg, #e67e22, #d35400);">
+                <div class="icon">🏀</div>
+                <div>כדורסל</div>
+            </div>
+            <div class="category-card" onclick="openCategory('Football')" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+                <div class="icon">⚽</div>
+                <div>כדורגל</div>
+            </div>
+            <div class="category-card" onclick="openCategory('Pub')" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                <div class="icon">🍻</div>
+                <div>יציאה לבר</div>
+            </div>
+            <div class="category-card" onclick="openCategory('Park')" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                <div class="icon">🌳</div>
+                <div>הליכה בפארק</div>
+            </div>
+        </div>
+        
+        <button onclick="logout()" style="margin-top: 40px; background: #e74c3c; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.1em;">🚪 התנתק</button>
+    </div>
+
+    <div id="mainApp" style="display: none;">
         <div class="header-container">
             <button id="darkModeToggle" class="top-btn" onclick="toggleDarkMode()" data-i18n="nightMode">🌙 לילה</button>
              <button id="langToggleBtn" class="top-btn lang-btn" onclick="toggleLanguage()">English (EN)</button>
@@ -59,25 +143,28 @@
             <button class="top-btn logout-btn" onclick="logout()" data-i18n="logout">🚪 התנתק</button>
         </div>
 
-        <div id="welcomeMessage" class="welcome-bar"></div>
+        <!-- כפתור חדש לחזרה למסך הבית -->
+        <button class="back-btn" onclick="backToHome()">🔙 חזור לתפריט הראשי</button>
         
         <div class="filter-container">
             <button id="btnAll" class="sport-btn active" onclick="setSportFilter('all')" data-i18n="filterAll">🌍 הכל</button>
             <button id="btnBasketball" class="sport-btn" onclick="setSportFilter('Basketball')" data-i18n="filterBasketball">🏀 כדורסל</button>
             <button id="btnFootball" class="sport-btn" onclick="setSportFilter('Football')" data-i18n="filterFootball">⚽ כדורגל</button>
-            <button id="btnMyGames" class="sport-btn" onclick="setSportFilter('my_games')" data-i18n="filterMyGames">👤 המשחקים שלי</button>
+            <button id="btnPub" class="sport-btn" onclick="setSportFilter('Pub')">🍻 ברים</button>
+            <button id="btnPark" class="sport-btn" onclick="setSportFilter('Park')">🌳 פארקים</button>
+            <button id="btnMyGames" class="sport-btn" onclick="setSportFilter('my_games')" data-i18n="filterMyGames">👤 הפעילויות שלי</button>
         </div>
 
         <div id="map"></div>
         
         <div class="form-container">
-            <h3 data-i18n="formTitle">➕ פתח משחק חדש</h3>
+            <h3 data-i18n="formTitle">➕ פתח מפגש חדש</h3>
             <div id="newGameForm">
-                <input type="text" id="searchBox" class="app-input" placeholder="🔍 הקלד שם מגרש לחיפוש מהיר..." data-i18n-placeholder="searchPlaceholder">
+                <input type="text" id="searchBox" class="app-input" placeholder="🔍 הקלד שם מיקום לחיפוש מהיר..." data-i18n-placeholder="searchPlaceholder">
                 <select id="courtId" class="app-input"><option value="" data-i18n="searchingLocation">מחפש מיקום... 📍</option></select>
                 <div id="selectedAddressDisplay"></div>
                 
-                <input type="number" id="missingPlayers" class="app-input" placeholder="כמה שחקנים חסרים?" data-i18n-placeholder="missingPlayersPlaceholder" min="1" max="10">
+                <input type="number" id="missingPlayers" class="app-input" placeholder="כמה אנשים חסרים?" data-i18n-placeholder="missingPlayersPlaceholder" min="1" max="50">
                 
                 <div style="display: flex; gap: 10px; width: 90%; margin: 10px auto;">
                     <input type="number" id="minAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מינימלי" data-i18n-placeholder="minAgePlaceholder" min="10" max="99">
@@ -91,11 +178,11 @@
                 <div class="time-picker-wrapper" id="timePickerWrapper" style="display: none;">
                     <select id="gameHour"></select><span class="time-picker-separator">:</span><select id="gameMinute"></select>
                 </div>
-                <button type="button" class="submit-btn" onclick="createNewGame()" data-i18n="submitGameBtn">פתח משחק!</button>
+                <button type="button" class="submit-btn" onclick="createNewGame()" data-i18n="submitGameBtn">צור מפגש!</button>
             </div>
         </div>
 
-        <h2 style="color: #2c3e50;" data-i18n="activeGamesTitle">🔥 משחקים שקורים עכשיו:</h2>
+        <h2 style="color: #2c3e50;" data-i18n="activeGamesTitle">🔥 מפגשים שקורים עכשיו:</h2>
         <div id="gamesList" class="games-container"></div>
     </div>
 
@@ -115,16 +202,15 @@
     
     <div id="whatsappModal" class="modal-overlay">
         <div class="modal-content">
-            <h2 style="margin-top: 0; color: #333;" data-i18n="gameCreatedTitle">🎉 המשחק נפתח!</h2>
+            <h2 style="margin-top: 0; color: #333;" data-i18n="gameCreatedTitle">🎉 המפגש נפתח!</h2>
             <button id="waShareBtn" class="wa-btn" data-i18n="whatsappBtn">💬 שלח בוואטסאפ</button>
             <button onclick="closeModal()" class="close-btn" style="background:none; border:none; color:gray; text-decoration:underline; font-size: 1.1em; cursor:pointer; margin-top:10px;" data-i18n="closeBtn">סגור</button>
         </div>
     </div>
 
-    <!-- אלמנט ההתראה הצפה הועבר לפה כדי שיופיע תמיד מעל הכל -->
     <div id="toastNotification">התראה חדשה!</div>
 
-<script src="js/lang.js?v=7.0"></script>
+    <script src="js/lang.js?v=7.0"></script>
     <script src="js/app.js?v=7.0"></script>
     <script src="js/auth.js?v=7.0"></script>
     <script src="js/chat.js?v=7.0"></script>
