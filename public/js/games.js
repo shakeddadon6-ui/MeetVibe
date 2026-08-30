@@ -249,10 +249,9 @@ window.closeReportModal = closeReportModal;
 
 async function submitReport() {
     const reason = document.getElementById('reportReason').value.trim();
-    if (!reason || !currentReportUserId) {
-        alert('❌ חובה לציין סיבה לדיווח.');
-        return;
-    }
+    if (!reason || !currentReportUserId) { alert('❌ חובה לציין סיבה לדיווח.'); return; }
+
+    const reportedNameRaw = document.getElementById('reportTargetName').innerText.replace('מדווח על: ', '');
 
     try {
         const res = await fetch('/api/reports', {
@@ -261,22 +260,21 @@ async function submitReport() {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem('sportMatchToken')
             },
-            body: JSON.stringify({
-                reportedUserId: currentReportUserId,
-                reason: reason
-            })
+            body: JSON.stringify({ reportedUserId: currentReportUserId, reason: reason })
         });
         
         const data = await res.json();
         if (data.success) {
             alert('✅ הדיווח נשלח בהצלחה למנהל המערכת.');
             closeReportModal();
+            
+            // שידור התראה אדומה בזמן אמת למנהל!
+            if (typeof socket !== 'undefined') {
+                socket.emit('send_report_alert', { reportedName: reportedNameRaw, reason: reason });
+            }
         } else {
             alert('❌ שגיאה: ' + (data.error || 'תקלה בשליחת דיווח'));
         }
-    } catch (err) {
-        console.error(err);
-        alert('❌ תקלה בשליחת הדיווח.');
-    }
+    } catch (err) { alert('❌ תקלה בשליחת הדיווח.'); }
 }
 window.submitReport = submitReport;
