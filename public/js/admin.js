@@ -66,7 +66,10 @@ async function loadAdminPlayers() {
                             <strong>מדווח:</strong> ${r.ReporterName} | <strong>מוזהר/מדווח עליו:</strong> <span style="color: #c0392b;">${r.ReportedName}</span><br>
                             <strong>סיבה:</strong> ${r.Reason} <br><small style="color: #7f8c8d;">${r.ReportDateStr}</small>
                         </div>
-                        <button onclick="deletePlayer(${r.ReportedUserID})" style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9em;">מחק משתמש פוגע</button>
+                        <div style="display: flex; gap: 5px;">
+                            <button onclick="warnUser(${r.ReportedUserID}, '${r.ReportedName.replace(/'/g, "\\'")}')" style="background:#f39c12; color:white; padding:6px 10px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; font-size: 0.9em;">⚠️ אזהרה</button>
+                            <button onclick="deletePlayer(${r.ReportedUserID})" style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9em;">מחק פוגע</button>
+                        </div>
                     </div>`;
             });
             html += `</div></div>`;
@@ -83,7 +86,11 @@ async function loadAdminPlayers() {
                         <strong>${p.FullName}</strong> (${p.Phone})<br>
                         <small style="color: #64748b;">גיל: ${p.Age} | מגדר: ${p.Gender} ${p.IsAdmin ? ' | ⭐ מנהל מערכת' : ''}</small>
                     </div>
-                    ${!p.IsAdmin ? `<button onclick="deletePlayer(${p.PlayerID})" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">מחק משתמש</button>` : ''}
+                    ${!p.IsAdmin ? `
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="warnUser(${p.PlayerID}, '${p.FullName.replace(/'/g, "\\'")}')" style="background:#f39c12; color:white; padding:8px 12px; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">⚠️ אזהרה</button>
+                        <button onclick="deletePlayer(${p.PlayerID})" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">מחק משתמש</button>
+                    </div>` : ''}
                 </div>`;
         });
         html += `</div>`;
@@ -113,6 +120,27 @@ async function deletePlayer(playerId) {
     }
 }
 window.deletePlayer = deletePlayer;
+
+async function warnUser(userId, userName) {
+    const warningText = prompt(`⚠️ איזו הודעת אזהרה תרצה לשלוח למשתמש ${userName}?`);
+    if (!warningText) return;
+
+    try {
+        const res = await fetch('/api/admin/warn', {
+            method: 'POST',
+            headers: window.getAuthHeaders(),
+            body: JSON.stringify({ userId, warningText })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            alert(`✅ האזהרה נשלחה בהצלחה ל-${userName}! (אם הוא מחובר, היא קפצה לו כרגע בענק על המסך).`);
+        } else {
+            alert("❌ שגיאה בשליחת אזהרה.");
+        }
+    } catch (err) { alert("❌ תקלה ברשת."); }
+}
+window.warnUser = warnUser;
 
 // פתיחת חלון דיווח על משתמש
 function openReportModal(reportedUserId, reportedUserName) {
