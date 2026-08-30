@@ -264,6 +264,37 @@ app.put('/api/games/:id/leave', authenticateToken, async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
 
+// ראוט לעדכון סטטוס משחק (ביטול או סימון כמלא)
+app.put('/api/games/:id/status', authenticateToken, async (req, res) => {
+    try {
+        const gameId = req.params.id;
+        const { userId, status } = req.body;
+        
+        await sql.connect(sqlConfig);
+        
+        const check = await sql.query(`SELECT CreatorPlayerID FROM Games WHERE GameID = ${gameId}`);
+        if (check.recordset.length === 0) return res.status(404).json({ error: "המפגש לא נמצא" });
+        if (check.recordset[0].CreatorPlayerID !== parseInt(userId)) {
+            return res.status(403).json({ error: "רק יוצר המפגש יכול לשנות את הסטטוס שלו." });
+        }
+
+        await sql.query(`UPDATE Games SET GameStatus = '${status}' WHERE GameID = ${gameId}`);
+        
+        if (status === 'Cancelled') {
+            await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ המפגש בוטל על ידי היוצר')`);
+            io.to(`game_${gameId}`).emit('receive_message', {
+                SenderName: 'מערכת',
+                MessageText: '❌ המפגש בוטל על ידי היוצר',
+                SendTime: new Date().toTimeString().substring(0, 5)
+            });
+        }
+
+        res.json({ success: true });
+    } catch (err) { 
+        res.status(500).json({ error: "תקלה בעדכון סטטוס המפגש." }); 
+    }
+});
+
 app.get('/api/games/:id/chat', authenticateToken, async (req, res) => {
     try {
         await sql.connect(sqlConfig);
