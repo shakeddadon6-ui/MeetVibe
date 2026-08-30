@@ -1,14 +1,19 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const sql = require('mssql');
 const cors = require('cors');
 const path = require('path');
-const bcrypt = require('bcryptjs'); // ספריית הצפנת סיסמאות
-const jwt = require('jsonwebtoken'); // ספריית טוקנים
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: "*", methods: ["GET", "POST"] }
+});
 
-// מפתח סודי להצפנת הטוקנים (באפליקציה אמיתית שומרים את זה בקובץ .env נסתר)
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = 'MeetVibe_Super_Secret_Key_2026_Secure!@#';
 
 app.use(cors());
@@ -26,31 +31,64 @@ const sqlConfig = {
 async function initDB() {
     try {
         await sql.connect(sqlConfig);
-        console.log("✅ השרת מחובר בהצלחה למסד הנתונים MeetVibe (Secure Mode)!");
+        console.log("✅ השרת מחובר בהצלחה למסד הנתונים MeetVibe (Socket.io Mode)!");
     } catch (err) { console.error("DB Init Error:", err); }
 }
 initDB();
 
-// ==========================================
-// שכבת אבטחה: Middleware לבדיקת Token
-// ==========================================
+// Middleware לבדיקת Token
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // שליפת הטוקן מתוך ה-Header
-
+    const token = authHeader && authHeader.split(' ')[1];
     if (!token) return res.status(401).json({ error: "גישה נדחתה. חסר טוקן אימות." });
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ error: "טוקן לא חוקי או שפג תוקפו. אנא התחבר מחדש." });
-        req.user = user; // שמירת פרטי המשתמש המאומת בתוך הבקשה
-        next(); // מעבר לפעולה הבאה
+        if (err) return res.status(403).json({ error: "טוקן לא חוקי או שפג תוקפו." });
+        req.user = user;
+        next();
     });
 }
 
 // ==========================================
-// ראוטים פתוחים (הרשמה והתחברות)
+// Socket.io - ניהול תקשורת בזמן אמת
 // ==========================================
+io.on('connection', (socket) => {
+    console.log(`⚡ משתמש התחבר ל-Socket: ${socket.id}`);
 
+    // הצטרפות לחדר של משחק ספציפי
+    socket.on('join_game_room', (gameId) => {
+        socket.join(`game_${gameId}`);
+        console.log(`👤 משתמש הצטרף לחדר צ'אט: game_${gameId}`);
+    });
+
+    // שליחת הודעה חדשה בזמן אמת
+    socket.on('send_message', async (data) => {
+        try {
+            const { gameId, senderName, messageText } = data;
+            await sql.connect(sqlConfig);
+            await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'${senderName.replace(/'/g, "''")}', N'${messageText.replace(/'/g, "''")}')`);
+            
+            const timeNow = new Date().toTimeString().substring(0, 5);
+            
+            // שידור ההודעה לכל מי שנמצא באותו חדר מיד!
+            io.to(`game_${gameId}`).emit('receive_message', {
+                SenderName: senderName,
+                MessageText: messageText,
+                SendTime: timeNow
+            });
+        } catch (err) {
+            console.error("Socket chat error:", err);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log(`🔌 משתמש התנתק: ${socket.id}`);
+    });
+});
+
+// ==========================================
+// ראוטים רגילים (התחברות, הרשמה וכו')
+// ==========================================
 app.post('/api/register', async (req, res) => {
     const { fullName, phone, password, age, gender } = req.body;
     try {
@@ -58,13 +96,12 @@ app.post('/api/register', async (req, res) => {
         const checkUser = await sql.query(`SELECT PlayerID FROM Players WHERE Phone = '${phone}'`);
         if (checkUser.recordset.length > 0) return res.status(400).json({ code: 'already_exists', error: "המספר כבר רשום במערכת." });
         
-        // הצפנת הסיסמה לפני השמירה במסד הנתונים
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
         await sql.query(`INSERT INTO Players (FullName, Phone, Password, Age, Gender) VALUES (N'${fullName.replace(/'/g, "''")}', '${phone}', '${hashedPassword}', ${age || 18}, N'${gender || 'לא מוגדר'}')`);
         res.status(201).json({ success: true, message: "נרשמת בהצלחה!" });
-    } catch (err) { console.error(err); res.status(500).json({ error: "תקלה בהרשמה." }); }
+    } catch (err) { res.status(500).json({ error: "תקלה בהרשמה." }); }
 });
 
 app.post('/api/login', async (req, res) => {
@@ -75,16 +112,12 @@ app.post('/api/login', async (req, res) => {
         if (checkUser.recordset.length === 0) return res.status(404).json({ code: 'not_found', error: "המספר לא קיים במערכת." });
         
         const user = checkUser.recordset[0];
-        
-        // בדיקה האם הסיסמה שהוקלדה תואמת לסיסמה המוצפנת במסד
         const validPassword = await bcrypt.compare(password, user.Password);
         if (!validPassword) return res.status(401).json({ code: 'wrong_password', error: "סיסמה שגויה." });
         
-        // יצירת טוקן מאובטח שיהיה תקף לשבוע
         const token = jwt.sign({ userId: user.PlayerID, phone: phone }, JWT_SECRET, { expiresIn: '7d' });
-
         res.json({ success: true, token: token, userId: user.PlayerID, userName: user.FullName, userAge: user.Age, userGender: user.Gender });
-    } catch (err) { console.error(err); res.status(500).json({ error: "תקלה בהתחברות." }); }
+    } catch (err) { res.status(500).json({ error: "תקלה בהתחברות." }); }
 });
 
 app.post('/api/reset-password', async (req, res) => {
@@ -92,23 +125,16 @@ app.post('/api/reset-password', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
         const userCheck = await sql.query(`SELECT PlayerID FROM Players WHERE Phone = '${phone}'`);
-        if (userCheck.recordset.length === 0) return res.status(404).json({ error: "המספר הזה לא קיים במערכת." });
+        if (userCheck.recordset.length === 0) return res.status(404).json({ error: "המספר לא קיים." });
         
-        // הצפנת הסיסמה החדשה
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
-
         await sql.query(`UPDATE Players SET Password = '${hashedPassword}' WHERE Phone = '${phone}'`);
-        res.json({ success: true, message: "הסיסמה שונתה בהצלחה!" });
-    } catch (err) { res.status(500).json({ error: "תקלה באיפוס סיסמה." }); }
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: "תקלה באיפוס." }); }
 });
 
-// ==========================================
-// ראוטים מוגנים (דורשים טוקן)
-// ==========================================
-
 app.post('/api/games', authenticateToken, async (req, res) => {
-    // השרת סומך עכשיו על ה-ID שמגיע מהטוקן המוצפן, לא מה-Client!
     const creatorPlayerId = req.user.userId;
     const { missingPlayers, startTime, minAge, maxAge, city, prefGender, eventType } = req.body;
     try {
@@ -118,10 +144,9 @@ app.post('/api/games', authenticateToken, async (req, res) => {
             VALUES (${creatorPlayerId}, '${startTime}', ${missingPlayers}, 'Open', ${minAge}, ${maxAge}, 1, N'${city.replace(/'/g, "''")}', N'${prefGender}', N'${eventType}')
         `);
         res.status(201).json({ success: true });
-    } catch (err) { res.status(500).json({ error: "תקלה בפתיחת האירוע." }); }
+    } catch (err) { res.status(500).json({ error: "תקלה בפתיחת אירוע." }); }
 });
 
-// את רשימת המשחקים הפתוחים אנחנו משאירים פתוחה ללא טוקן, כדי שיוכלו לראות לפני שמתחברים
 app.get('/api/games', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
@@ -141,7 +166,6 @@ app.get('/api/games', async (req, res) => {
 });
 
 app.get('/api/games/history/:userId', authenticateToken, async (req, res) => {
-    // מוודאים שמשתמש מושך רק את ההיסטוריה של עצמו
     if (parseInt(req.params.userId) !== req.user.userId) return res.status(403).json({ error: "אין הרשאה." });
     try {
         await sql.connect(sqlConfig);
@@ -158,24 +182,24 @@ app.get('/api/games/history/:userId', authenticateToken, async (req, res) => {
             ORDER BY Games.StartTime DESC
         `);
         res.json(result.recordset);
-    } catch (err) { res.status(500).json({ error: "תקלה במשיכת היסטוריה" }); }
+    } catch (err) { res.status(500).json({ error: "תקלה בהיסטוריה" }); }
 });
 
 app.put('/api/games/:id/join', authenticateToken, async (req, res) => {
     try {
         const gameId = req.params.id; 
-        const userId = req.user.userId; // מאובטח מהטוקן
+        const userId = req.user.userId;
         await sql.connect(sqlConfig);
         
         const checkJoined = await sql.query(`SELECT * FROM GameParticipants WHERE GameID = ${gameId} AND PlayerID = ${userId}`);
-        if (checkJoined.recordset.length > 0) return res.status(400).json({ error: "כבר נרשמת לאירוע הזה!" });
+        if (checkJoined.recordset.length > 0) return res.status(400).json({ error: "כבר נרשמת!" });
 
         const check = await sql.query(`SELECT MissingPlayers, CreatorPlayerID FROM Games WHERE GameID = ${gameId}`);
         if (check.recordset.length === 0) return res.status(404).json({ error: "לא נמצא" });
         if (check.recordset[0].CreatorPlayerID === parseInt(userId)) return res.status(400).json({ error: "אתה היוצר!" });
 
         const userCheck = await sql.query(`SELECT FullName FROM Players WHERE PlayerID = ${userId}`);
-        const joiningUserName = userCheck.recordset.length > 0 ? userCheck.recordset[0].FullName : "משתמש חדש";
+        const joiningUserName = userCheck.recordset.length > 0 ? userCheck.recordset[0].FullName : "משתמש";
 
         let missing = check.recordset[0].MissingPlayers;
         if (missing <= 0) return res.status(400).json({ error: "מלא!" });
@@ -184,6 +208,13 @@ app.put('/api/games/:id/join', authenticateToken, async (req, res) => {
         await sql.query(`INSERT INTO GameParticipants (GameID, PlayerID) VALUES (${gameId}, ${userId})`);
         await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = '${missing === 0 ? 'Full' : 'Open'}' WHERE GameID = ${gameId}`);
         await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'🔔 ${joiningUserName} הצטרף/ה!')`);
+
+        // שידור הודעת מערכת בזמן אמת לכל מי שצופה בצ'אט
+        io.to(`game_${gameId}`).emit('receive_message', {
+            SenderName: 'מערכת',
+            MessageText: `🔔 ${joiningUserName} הצטרף/ה!`,
+            SendTime: new Date().toTimeString().substring(0, 5)
+        });
 
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
@@ -202,24 +233,13 @@ app.put('/api/games/:id/leave', authenticateToken, async (req, res) => {
         let missing = check.recordset[0].MissingPlayers + 1;
         await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = 'Open' WHERE GameID = ${gameId}`);
         await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ ${leavingUserName} ביטל/ה הגעה')`);
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: "תקלה" }); }
-});
 
-app.put('/api/games/:id/status', authenticateToken, async (req, res) => {
-    try {
-        const gameId = req.params.id; 
-        const userId = req.user.userId; 
-        const { status } = req.body; 
-        await sql.connect(sqlConfig);
-        const check = await sql.query(`SELECT CreatorPlayerID FROM Games WHERE GameID = ${gameId}`);
-        if (check.recordset.length === 0) return res.status(404).json({ error: "האירוע לא נמצא." });
-        if (check.recordset[0].CreatorPlayerID !== parseInt(userId)) return res.status(403).json({ error: "אין לך הרשאה לבטל את המפגש הזה!" });
-        
-        await sql.query(`UPDATE Games SET GameStatus = '${status}' WHERE GameID = ${gameId}`);
-        if (status === 'Cancelled') {
-            await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ האירוע בוטל על ידי היוצר')`);
-        }
+        io.to(`game_${gameId}`).emit('receive_message', {
+            SenderName: 'מערכת',
+            MessageText: `❌ ${leavingUserName} ביטל/ה הגעה`,
+            SendTime: new Date().toTimeString().substring(0, 5)
+        });
+
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
@@ -232,12 +252,21 @@ app.get('/api/games/:id/chat', authenticateToken, async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
 
+// שימו לב: הודעות צ'אט רגילות מנוהלות כעת בצורה מושלמת דרך Socket.io, אך נשאר ראוט גיבוי HTTP במידת הצורך
 app.post('/api/games/:id/chat', authenticateToken, async (req, res) => {
     try {
         await sql.connect(sqlConfig);
         await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${req.params.id}, N'${req.body.senderName.replace(/'/g, "''")}', N'${req.body.messageText.replace(/'/g, "''")}')`);
+        
+        io.to(`game_${req.params.id}`).emit('receive_message', {
+            SenderName: req.body.senderName,
+            MessageText: req.body.messageText,
+            SendTime: new Date().toTimeString().substring(0, 5)
+        });
+
         res.status(201).json({ success: true });
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
 
-app.listen(PORT, () => { console.log(`Server is running on port ${PORT}`); });
+// שימוש ב-server.listen במקום app.listen כדי לתמוך גם ב-Socket.io
+server.listen(PORT, () => { console.log(`Server is running with Socket.io on port ${PORT}`); });
