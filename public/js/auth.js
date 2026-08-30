@@ -29,16 +29,19 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     e.preventDefault();
     const fullName = document.getElementById('regName').value; 
     const phone = document.getElementById('regPhone').value; 
-    const age = document.getElementById('regAge').value; // משיכת הגיל מהטופס
+    const age = document.getElementById('regAge').value;
+    const gender = document.getElementById('regGender').value; // משיכת המגדר מהטופס
     const password = document.getElementById('regPassword').value;
+    
     try {
         const res = await fetch('/api/register', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
-            // הוספת הגיל לשליחה לשרת
-            body: JSON.stringify({ fullName, phone, password, age: parseInt(age) }) 
+            // הוספת המגדר לשליחה לשרת
+            body: JSON.stringify({ fullName, phone, password, age: parseInt(age), gender: gender }) 
         });
         const data = await res.json();
+        
         if(res.ok) { 
             alert(t("authSuccess")); 
             switchAuthTab('login'); 
@@ -57,15 +60,18 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const phone = document.getElementById('loginPhone').value; 
     const password = document.getElementById('loginPassword').value;
+    
     try {
         const res = await fetch('/api/login', { 
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, password }) 
         });
         const data = await res.json();
+        
         if(res.ok) { 
             localStorage.setItem('sportMatchUserId', data.userId); 
             localStorage.setItem('sportMatchUser', data.userName); 
-            localStorage.setItem('sportMatchUserAge', data.userAge); // שמירת הגיל בזיכרון!
+            localStorage.setItem('sportMatchUserAge', data.userAge);
+            localStorage.setItem('sportMatchUserGender', data.userGender); // שמירת המגדר בזיכרון
             
             myUserId = data.userId; 
             myUsername = data.userName; 
@@ -84,6 +90,7 @@ document.getElementById('forgotForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const phone = document.getElementById('forgotPhone').value;
     const newPassword = document.getElementById('forgotNewPassword').value;
+    
     try {
         const res = await fetch('/api/reset-password', {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, newPassword })
@@ -103,7 +110,8 @@ document.getElementById('forgotForm').addEventListener('submit', async (e) => {
 function logout() { 
     localStorage.removeItem('sportMatchUserId'); 
     localStorage.removeItem('sportMatchUser'); 
-    localStorage.removeItem('sportMatchUserAge'); // ניקוי הגיל בהתנתקות
+    localStorage.removeItem('sportMatchUserAge'); 
+    localStorage.removeItem('sportMatchUserGender'); // ניקוי המגדר בהתנתקות
     location.reload(); 
 }
 window.logout = logout;
