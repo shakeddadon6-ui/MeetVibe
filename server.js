@@ -59,6 +59,9 @@ function requireAdmin(req, res, next) {
     });
 }
 
+// חיבור ראוט הדיווחים החיצוני מתיקיית routes
+app.use('/api', require('./routes/admin'));
+
 // ==========================================
 // Socket.io - ניהול תקשורת בזמן אמת
 // ==========================================
@@ -114,7 +117,6 @@ app.post('/api/login', async (req, res) => {
         const validPassword = await bcrypt.compare(password, user.Password);
         if (!validPassword) return res.status(401).json({ code: 'wrong_password', error: "סיסמה שגויה." });
         
-        // שמירת סטטוס המנהל בתוך הטוקן
         const token = jwt.sign({ userId: user.PlayerID, phone: phone, isAdmin: user.IsAdmin === true || user.IsAdmin === 1 }, JWT_SECRET, { expiresIn: '7d' });
         
         res.json({ 
@@ -280,7 +282,6 @@ app.post('/api/games/:id/chat', authenticateToken, async (req, res) => {
 // ראוטים למנהל בלבד (Admin Dashboard APIs)
 // ==========================================
 
-// קבלת כל המשתמשים במערכת
 app.get('/api/admin/players', requireAdmin, async (req, res) => {
     try {
         await sql.connect(sqlConfig);
@@ -289,12 +290,10 @@ app.get('/api/admin/players', requireAdmin, async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה בשליפת משתמשים" }); }
 });
 
-// מחיקת משתמש על ידי מנהל
 app.delete('/api/admin/players/:id', requireAdmin, async (req, res) => {
     try {
         const playerId = req.params.id;
         await sql.connect(sqlConfig);
-        // מחיקת ההשתתפויות וההודעות שלו קודם למניעת שגיאות Foreign Key
         await sql.query(`DELETE FROM GameParticipants WHERE PlayerID = ${playerId}`);
         await sql.query(`DELETE FROM Games WHERE CreatorPlayerID = ${playerId}`);
         await sql.query(`DELETE FROM Players WHERE PlayerID = ${playerId}`);
