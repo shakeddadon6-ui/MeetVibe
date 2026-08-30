@@ -92,43 +92,43 @@
                 <input type="text" id="gameCity" list="israelCities" class="app-input" placeholder="🏙️ הקלד או בחר עיר ברשימה..." data-i18n-placeholder="cityPlaceholder" required>
                 
                 <select id="gameEventType" class="app-input" required>
-                    <option value="" disabled selected>-- בחר סוג בילוי / ספורט --</option>
-                    <optgroup label="ספורט ומשחקי כדור">
-                        <option value="כדורגל">⚽ כדורגל</option>
-                        <option value="כדורסל">🏀 כדורסל</option>
-                        <option value="טניס">🎾 טניס</option>
-                        <option value="כדורעף">🏐 כדורעף</option>
-                        <option value="פינג פונג">🏓 פינג פונג</option>
-                        <option value="אימון כושר">🏋️ אימון כושר בפארק</option>
-                        <option value="יוגה/פילאטיס">🧘‍♀️ יוגה / פילאטיס</option>
-                        <option value="הליכה">🚶‍♂️ הליכה</option>
-                        <option value="ריצה">🏃‍♀️ ריצה משותפת</option>
-                        <option value="רכיבה על אופניים">🚴‍♂️ רכיבה על אופניים</option>
+                    <option value="" disabled selected data-i18n="eventTypePlaceholder">-- בחר סוג בילוי / ספורט --</option>
+                    <optgroup label="ספורט ומשחקי כדור" data-i18n-label="groupSport">
+                        <option value="כדורגל" data-i18n="typeFootball">⚽ כדורגל</option>
+                        <option value="כדורסל" data-i18n="typeBasketball">🏀 כדורסל</option>
+                        <option value="טניס" data-i18n="typeTennis">🎾 טניס</option>
+                        <option value="כדורעף" data-i18n="typeVolleyball">🏐 כדורעף</option>
+                        <option value="פינג פונג" data-i18n="typePingPong">🏓 פינג פונג</option>
+                        <option value="אימון כושר" data-i18n="typeWorkout">🏋️ אימון כושר בפארק</option>
+                        <option value="יוגה/פילאטיס" data-i18n="typeYoga">🧘‍♀️ יוגה / פילאטיס</option>
+                        <option value="הליכה" data-i18n="typeWalking">🚶‍♂️ הליכה</option>
+                        <option value="ריצה" data-i18n="typeRunning">🏃‍♀️ ריצה משותפת</option>
+                        <option value="רכיבה על אופניים" data-i18n="typeCycling">🚴‍♂️ רכיבה על אופניים</option>
                     </optgroup>
-                    <optgroup label="בילוי ופנאי">
-                        <option value="יציאה לבר/פאב">🍻 יציאה לבר/פאב</option>
-                        <option value="מסעדה">🍽️ מסעדה / אוכל</option>
-                        <option value="בית קפה">☕ ישיבה בבית קפה</option>
-                        <option value="ים">🏖️ הליכה או ישיבה בים</option>
-                        <option value="סרט/קולנוע">🍿 סרט בקולנוע</option>
-                        <option value="הופעת חיה">🎸 הופעה חיה / מוזיקה</option>
-                        <option value="סטנדאפ">🎭 מופע סטנדאפ</option>
-                        <option value="צפייה במשחק">📺 צפייה במשחק ספורט</option>
+                    <optgroup label="בילוי ופנאי" data-i18n-label="groupLeisure">
+                        <option value="יציאה לבר/פאב" data-i18n="typePub">🍻 יציאה לבר/פאב</option>
+                        <option value="מסעדה" data-i18n="typeRestaurant">🍽️ מסעדה / אוכל</option>
+                        <option value="בית קפה" data-i18n="typeCafe">☕ ישיבה בבית קפה</option>
+                        <option value="ים" data-i18n="typeBeach">🏖️ הליכה או ישיבה בים</option>
+                        <option value="סרט/קולנוע" data-i18n="typeCinema">🍿 סרט בקולנוע</option>
+                        <option value="הופעת חיה" data-i18n="typeConcert">🎸 הופעה חיה / מוזיקה</option>
+                        <option value="סטנדאפ" data-i18n="typeStandup">🎭 מופע סטנדאפ</option>
+                        <option value="צפייה במשחק" data-i18n="typeWatchGame">📺 צפייה במשחק ספורט</option>
                     </optgroup>
-                    <optgroup label="תחביבים והעשרה">
-                        <option value="משחקי קופסה">🎲 משחקי קופסה</option>
-                        <option value="גיימינג">🎮 גיימינג / קונסולות</option>
-                        <option value="טיול בטבע">🏕️ טיול בטבע</option>
-                        <option value="סדנת בישול">🍳 סדנת בישול / אפייה</option>
-                        <option value="קריאה/ספרים">📖 מפגש קריאה / ספרים</option>
+                    <optgroup label="תחביבים והעשרה" data-i18n-label="groupHobbies">
+                        <option value="משחקי קופסה" data-i18n="typeBoardGames">🎲 משחקי קופסה</option>
+                        <option value="גיימינג" data-i18n="typeGaming">🎮 גיימינג / קונסולות</option>
+                        <option value="טיול בטבע" data-i18n="typeNature">🏕️ טיול בטבע</option>
+                        <option value="סדנת בישול" data-i18n="typeCooking">🍳 סדנת בישול / אפייה</option>
+                        <option value="קריאה/ספרים" data-i18n="typeReading">📖 מפגש קריאה / ספרים</option>
                     </optgroup>
-                    <option value="אחר">✨ משהו אחר</option>
+                    <option value="אחר" data-i18n="typeOther">✨ משהו אחר</option>
                 </select>
 
                 <select id="gamePrefGender" class="app-input">
-                    <option value="לא משנה" selected>👥 מגדר מועדף: לא משנה</option>
-                    <option value="זכר">♂️ רק גברים</option>
-                    <option value="נקבה">♀️ רק נשים</option>
+                    <option value="לא משנה" selected data-i18n="prefGenderAny">👥 מגדר מועדף: לא משנה</option>
+                    <option value="זכר" data-i18n="prefGenderMale">♂️ רק גברים</option>
+                    <option value="נקבה" data-i18n="prefGenderFemale">♀️ רק נשים</option>
                 </select>
                 
                 <input type="number" id="gameMissingPlayers" class="app-input" placeholder="כמה אנשים חסרים?" data-i18n-placeholder="missingPlayersPlaceholder" min="1" max="50" required>
@@ -141,7 +141,7 @@
                 <input type="date" id="gameDate" class="app-input" style="width: 90%; margin: 10px auto;" required>
 
                 <div class="time-picker-wrapper" style="display: flex; margin-bottom: 15px; justify-content: center;">
-                    <span style="align-self: center; margin-left: 10px;">שעה:</span>
+                    <span style="align-self: center; margin-left: 10px;" data-i18n="timeLabel">שעה:</span>
                     <select id="gameHour"></select><span class="time-picker-separator">:</span><select id="gameMinute"></select>
                 </div>
                 
@@ -152,17 +152,17 @@
         <h2 style="color: #2c3e50; padding-right: 15px; margin-bottom: 5px;" data-i18n="activeGamesTitle">🔥 מפגשים פתוחים:</h2>
         
         <div class="social-filter-bar">
-            <input type="text" id="filterCity" list="israelCities" placeholder="🔍 סנן לפי עיר...">
+            <input type="text" id="filterCity" list="israelCities" placeholder="🔍 סנן לפי עיר..." data-i18n-placeholder="filterCityPlaceholder">
             <select id="filterType" onchange="filterGamesList()">
-                <option value="all">🎭 הכל</option>
-                <option value="כדורגל">⚽ כדורגל</option>
-                <option value="כדורסל">🏀 כדורסל</option>
-                <option value="טניס">🎾 טניס</option>
-                <option value="כדורעף">🏐 כדורעף</option>
-                <option value="יציאה לבר/פאב">🍻 ברים ופאבים</option>
-                <option value="מסעדה">🍽️ מסעדות</option>
-                <option value="ים">🏖️ ים</option>
-                <option value="my_games">👤 הפעילויות שלי</option>
+                <option value="all" data-i18n="filterTypeAll">🎭 הכל</option>
+                <option value="כדורגל" data-i18n="typeFootball">⚽ כדורגל</option>
+                <option value="כדורסל" data-i18n="typeBasketball">🏀 כדורסל</option>
+                <option value="טניס" data-i18n="typeTennis">🎾 טניס</option>
+                <option value="כדורעף" data-i18n="typeVolleyball">🏐 כדורעף</option>
+                <option value="יציאה לבר/פאב" data-i18n="typePub">🍻 יציאה לבר/פאב</option>
+                <option value="מסעדה" data-i18n="typeRestaurant">🍽️ מסעדה / אוכל</option>
+                <option value="ים" data-i18n="typeBeach">🏖️ ים</option>
+                <option value="my_games" data-i18n="filterTypeMyGames">👤 הפעילויות שלי</option>
             </select>
         </div>
 
@@ -172,7 +172,7 @@
     <div id="chatModal" class="modal-overlay">
         <div class="chat-modal">
             <div class="chat-header">
-                <span id="chatTitle">💬 צ'אט</span>
+                <span id="chatTitle" data-i18n="chatTitle">💬 צ'אט</span>
                 <button onclick="closeChat()" style="background:none; border:none; color:white; font-size:1.5em; cursor:pointer;">&times;</button>
             </div>
             <div id="chatMessages" class="chat-messages"></div>
@@ -193,10 +193,10 @@
 
     <div id="toastNotification">התראה חדשה!</div>
 
-    <script src="js/lang.js?v=8.2"></script>
-    <script src="js/app.js?v=8.2"></script>
-    <script src="js/auth.js?v=8.2"></script>
-    <script src="js/chat.js?v=8.2"></script>
+    <script src="js/lang.js?v=8.3"></script>
+    <script src="js/app.js?v=8.3"></script>
+    <script src="js/auth.js?v=8.3"></script>
+    <script src="js/chat.js?v=8.3"></script>
 
 </body>
 </html>
