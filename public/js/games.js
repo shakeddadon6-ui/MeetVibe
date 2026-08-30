@@ -68,12 +68,13 @@ function createGameCardHtml(game, diffMins, formattedDate, timeString) {
     }
 
     const isCreator = parseInt(myUserId) === game.CreatorPlayerID;
+    const isAdmin = localStorage.getItem('sportMatchIsAdmin') === 'true' || localStorage.getItem('sportMatchIsAdmin') === '1';
     const joinedPlayers = game.JoinedPlayersStr ? game.JoinedPlayersStr.split(',').filter(id => id !== '') : [];
     const hasJoined = joinedPlayers.includes(String(myUserId));
     const chatName = game.EventType + ' ב' + game.City;
     
     let joinControlsHtml = '';
-    if (!isCreator && game.GameStatus !== 'Cancelled' && diffMins >= -120) {
+    if (!isCreator && !isAdmin && game.GameStatus !== 'Cancelled' && diffMins >= -120) {
         if (hasJoined) {
             joinControlsHtml = `<button class="join-btn" style="background-color: #95a5a6;" onclick="leaveGame(${game.GameID})">ביטול הגעה</button>`;
         } else {
@@ -90,10 +91,14 @@ function createGameCardHtml(game, diffMins, formattedDate, timeString) {
         </div>`;
     }
 
-    // כפתור דיווח שיוצג רק למי שאינו יוצר המפגש
-    let reportBtn = '';
-    if (!isCreator && myUserId) {
-        reportBtn = `<button onclick="openReportModal(${game.CreatorPlayerID}, '${game.CreatorName.replace(/'/g, "\\'")}')" style="background: transparent; border: none; color: #e74c3c; cursor: pointer; font-size: 0.85em; margin-top: 10px; text-decoration: underline; display: block; width: 100%;">🚨 דווח על ${game.CreatorName}</button>`;
+    // כפתור דיווח וחסימה על יוצר המפגש (מוצג רק למשתמש רגיל שאינו היוצר ואינו אדמין)
+    let creatorActionsHtml = '';
+    if (!isCreator && !isAdmin && myUserId) {
+        creatorActionsHtml = `
+            <div style="margin-top: 8px; display: flex; gap: 10px; justify-content: center; font-size: 0.85em;">
+                <button onclick="openReportModal(${game.CreatorPlayerID}, '${game.CreatorName.replace(/'/g, "\\'")}')" style="background: transparent; border: none; color: #e74c3c; cursor: pointer; text-decoration: underline;">🚨 דווח על היוצר</button>
+                <button onclick="blockUser(${game.CreatorPlayerID}, '${game.CreatorName.replace(/'/g, "\\'")}')" style="background: transparent; border: none; color: #7f8c8d; cursor: pointer; text-decoration: underline;">🚫 חסום יוצר</button>
+            </div>`;
     }
 
     const chatBtn = `<button class="chat-btn" onclick="openChat(${game.GameID}, '${chatName}')">💬 צ'אט לקביעת מיקום</button>`;
@@ -107,12 +112,12 @@ function createGameCardHtml(game, diffMins, formattedDate, timeString) {
     
     return `<div class="court-name">${iconStr} ${game.EventType} ב${game.City}</div>
             <div class="detail"><strong>👤 יוצר:</strong> ${game.CreatorName}</div>
+            ${creatorActionsHtml}
             ${timeBadgeHtml}
             ${ageHtml}
             <div class="badge">מחפשים עוד ${game.MissingPlayers} חבר'ה</div>
             <div class="btn-group">${joinControlsHtml} ${chatBtn}</div>
-            ${creatorControlsHtml}
-            ${reportBtn}`;
+            ${creatorControlsHtml}`;
 }
 
 async function joinGame(gameId, courtName) {
@@ -227,6 +232,28 @@ window.createNewGame = createNewGame;
 
 function closeModal() { document.getElementById('whatsappModal').style.display = 'none'; }
 window.closeModal = closeModal;
+
+// ==========================================
+// מנגנון חסימות משתמשים
+// ==========================================
+async function blockUser(userId, userName) {
+    if (!confirm(`האם אתה בטוח שברצונך לחסום את ${userName}? לא תראו עוד מפגשים אחד של השני.`)) return;
+    try {
+        const res = await fetch('/api/users/block', {
+            method: 'POST',
+            headers: window.getAuthHeaders(),
+            body: JSON.stringify({ blockedId: userId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(`חסמת את ${userName}.`);
+            loadGames();
+        } else {
+            alert(data.error || "שגיאה בביצוע החסימה");
+        }
+    } catch (err) { alert("שגיאת רשת"); }
+}
+window.blockUser = blockUser;
 
 // ==========================================
 // מנגנון דיווח על משתמשים
