@@ -33,80 +33,63 @@
 </head>
 <body>
 
-    <datalist id="israelCities">
-        <option value="אום אל-פחם"><option value="אופקים"><option value="אור יהודה"><option value="אור עקיבא"><option value="אילת">
-        <option value="אלעד"><option value="אריאל"><option value="אשדוד"><option value="אשקלון"><option value="באקה אל-גרביה">
-        <option value="באר יעקב"><option value="באר שבע"><option value="בית שאן"><option value="בית שמש"><option value="ביתר עילית">
-        <option value="בני ברק"><option value="בת ים"><option value="גבעת שמואל"><option value="גבעתיים"><option value="דימונה">
-        <option value="הוד השרון"><option value="הרצליה"><option value="חדרה"><option value="חולון"><option value="חיפה">
-        <option value="טבריה"><option value="טובאס"><option value="טייבה"><option value="טירה"><option value="טירת כרמל">
-        <option value="יבנה"><option value="יהוד-מונוסון"><option value="יקנעם עילית"><option value="ירושלים"><option value="כפר יונה">
-        <option value="כפר סבא"><option value="כפר קאסם"><option value="כרמיאל"><option value="לוד"><option value="מגדל העמק">
-        <option value="מודיעין עילית"><option value="מודיעין-מכבים-רעות"><option value="מעלה אדומים"><option value="מעלות-תרשיחא"><option value="נהריה">
-        <option value="נס ציונה"><option value="נצרת"><option value="נצרת עילית (נוף הגליל)"><option value="נשר"><option value="נתיבות">
-        <option value="נתניה"><option value="סח'נין"><option value="עכו"><option value="עפולה"><option value="עראבה">
-        <option value="ערד"><option value="פתח תקווה"><option value="צפת"><option value="קלנסווה"><option value="קריית אונו">
-        <option value="קריית אתא"><option value="קריית ביאליק"><option value="קריית גת"><option value="קריית ים"><option value="קריית מוצקין">
-        <option value="קריית מלאכי"><option value="קריית שמונה"><option value="ראש העין"><option value="ראשון לציון"><option value="רהט">
-        <option value="רחובות"><option value="רמלה"><option value="רמת גן"><option value="רמת השרון"><option value="רעננה">
-        <option value="שדרות"><option value="שפרעם"><option value="תל אביב-יפו">
-    </datalist>
+    <datalist id="israelCities"></datalist>
 
     <div id="authScreen" class="auth-overlay">
         <div class="auth-container">
             <h1>🤝 SportMatch</h1>
             <div class="auth-tabs" id="authTabs">
-                <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')">התחברות</button>
-                <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')">הרשמה</button>
+                <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')" data-i18n="loginTab">התחברות</button>
+                <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')" data-i18n="registerTab">הרשמה</button>
             </div>
             
             <form id="loginForm" class="auth-form">
-                <input type="tel" id="loginPhone" placeholder="מספר טלפון" required>
-                <input type="password" id="loginPassword" placeholder="סיסמה" required>
-                <button type="submit">היכנס למערכת</button>
-                <a class="forgot-pass-link" onclick="switchAuthTab('forgot')">שכחתי סיסמה 🤔</a>
+                <input type="tel" id="loginPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
+                <input type="password" id="loginPassword" placeholder="סיסמה" data-i18n-placeholder="passwordPlaceholder" required>
+                <button type="submit" data-i18n="loginBtn">היכנס למערכת</button>
+                <a class="forgot-pass-link" onclick="switchAuthTab('forgot')" data-i18n="forgotPassword">שכחתי סיסמה 🤔</a>
             </form>
             
             <form id="registerForm" class="auth-form" style="display: none;">
-                <input type="text" id="regName" placeholder="שם מלא" required>
-                <input type="tel" id="regPhone" placeholder="מספר טלפון" required>
-                <input type="number" id="regAge" placeholder="גיל" min="10" max="99" required>
+                <input type="text" id="regName" placeholder="שם מלא" data-i18n-placeholder="namePlaceholder" required>
+                <input type="tel" id="regPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
+                <input type="number" id="regAge" placeholder="גיל" data-i18n-placeholder="agePlaceholder" min="10" max="99" required>
                 
                 <select id="regGender" required style="margin-bottom: 10px; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; font-size: 1em;">
-                    <option value="" disabled selected>בחר מגדר</option>
-                    <option value="זכר">זכר</option>
-                    <option value="נקבה">נקבה</option>
-                    <option value="אחר">אחר</option>
+                    <option value="" disabled selected data-i18n="genderPlaceholder">בחר מגדר</option>
+                    <option value="זכר" data-i18n="genderMale">זכר</option>
+                    <option value="נקבה" data-i18n="genderFemale">נקבה</option>
+                    <option value="אחר" data-i18n="genderOther">אחר</option>
                 </select>
                 
-                <input type="password" id="regPassword" placeholder="בחר סיסמה" required>
-                <button type="submit">צור משתמש חדש</button>
+                <input type="password" id="regPassword" placeholder="בחר סיסמה" data-i18n-placeholder="choosePasswordPlaceholder" required>
+                <button type="submit" data-i18n="registerBtn">צור משתמש חדש</button>
             </form>
 
             <form id="forgotForm" class="auth-form" style="display: none;">
-                <h3 style="margin-top: 0; color: #e74c3c;">איפוס סיסמה</h3>
-                <input type="tel" id="forgotPhone" placeholder="מספר טלפון" required>
-                <input type="password" id="forgotNewPassword" placeholder="סיסמה חדשה" required>
-                <button type="submit" style="background: #e74c3c;">עדכן סיסמה</button>
-                <a class="forgot-pass-link" onclick="switchAuthTab('login')">חזור להתחברות</a>
+                <h3 style="margin-top: 0; color: #e74c3c;" data-i18n="resetTitle">איפוס סיסמה</h3>
+                <input type="tel" id="forgotPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
+                <input type="password" id="forgotNewPassword" placeholder="סיסמה חדשה" data-i18n-placeholder="newPasswordPlaceholder" required>
+                <button type="submit" style="background: #e74c3c;" data-i18n="updatePasswordBtn">עדכן סיסמה</button>
+                <a class="forgot-pass-link" onclick="switchAuthTab('login')" data-i18n="backToLogin">חזור להתחברות</a>
             </form>
         </div>
     </div>
 
-    <!-- האפליקציה המרכזית (ללא מפה, הכל מפגשים) -->
     <div id="mainApp" style="display: none;">
         <div class="header-container" style="background: #8e44ad;">
-            <button class="top-btn" onclick="toggleDarkMode()">🌙 לילה</button>
-            <h1 class="main-title" style="color: white;">SportMatch</h1>
-            <button class="top-btn logout-btn" onclick="logout()">🚪 התנתק</button>
+            <button class="top-btn" onclick="toggleDarkMode()" data-i18n="nightMode">🌙 לילה</button>
+            <button id="langToggleBtn" class="top-btn" onclick="toggleLanguage()" style="background: #27ae60; color: white;">English (EN)</button>
+            <h1 class="main-title" style="color: white;" data-i18n="appTitle">SportMatch</h1>
+            <button class="top-btn logout-btn" onclick="logout()" data-i18n="logout">🚪 התנתק</button>
         </div>
 
         <h3 id="welcomeMessage" style="text-align: center; color: #8e44ad; margin-top: 15px;"></h3>
         
         <div class="form-container">
-            <h3>🥂 יצירת מפגש חדש</h3>
+            <h3 data-i18n="formTitle">🥂 יצירת מפגש חדש</h3>
             <div id="newGameForm">
-                <input type="text" id="gameCity" list="israelCities" class="app-input" placeholder="🏙️ הקלד או בחר עיר ברשימה..." required>
+                <input type="text" id="gameCity" list="israelCities" class="app-input" placeholder="🏙️ הקלד או בחר עיר ברשימה..." data-i18n-placeholder="cityPlaceholder" required>
                 
                 <select id="gameEventType" class="app-input" required>
                     <option value="" disabled selected>-- בחר סוג בילוי / ספורט --</option>
@@ -148,11 +131,11 @@
                     <option value="נקבה">♀️ רק נשים</option>
                 </select>
                 
-                <input type="number" id="gameMissingPlayers" class="app-input" placeholder="כמה אנשים חסרים?" min="1" max="50" required>
+                <input type="number" id="gameMissingPlayers" class="app-input" placeholder="כמה אנשים חסרים?" data-i18n-placeholder="missingPlayersPlaceholder" min="1" max="50" required>
                 
                 <div style="display: flex; gap: 10px; width: 90%; margin: 10px auto;">
-                    <input type="number" id="gameMinAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מינימלי" min="10" max="99">
-                    <input type="number" id="gameMaxAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מקסימלי" min="10" max="99">
+                    <input type="number" id="gameMinAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מינימלי" data-i18n-placeholder="minAgePlaceholder" min="10" max="99">
+                    <input type="number" id="gameMaxAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מקסימלי" data-i18n-placeholder="maxAgePlaceholder" min="10" max="99">
                 </div>
                 
                 <input type="date" id="gameDate" class="app-input" style="width: 90%; margin: 10px auto;" required>
@@ -162,14 +145,14 @@
                     <select id="gameHour"></select><span class="time-picker-separator">:</span><select id="gameMinute"></select>
                 </div>
                 
-                <button type="button" class="submit-btn" style="background: #8e44ad;" onclick="createNewGame()">צור מפגש!</button>
+                <button type="button" class="submit-btn" style="background: #8e44ad;" onclick="createNewGame()" data-i18n="submitGameBtn">צור מפגש!</button>
             </div>
         </div>
 
-        <h2 style="color: #2c3e50; padding-right: 15px; margin-bottom: 5px;">🔥 מפגשים פתוחים:</h2>
+        <h2 style="color: #2c3e50; padding-right: 15px; margin-bottom: 5px;" data-i18n="activeGamesTitle">🔥 מפגשים פתוחים:</h2>
         
         <div class="social-filter-bar">
-            <input type="text" id="filterCity" list="israelCities" placeholder="🔍 סנן לפי עיר..." oninput="filterGamesList()">
+            <input type="text" id="filterCity" list="israelCities" placeholder="🔍 סנן לפי עיר...">
             <select id="filterType" onchange="filterGamesList()">
                 <option value="all">🎭 הכל</option>
                 <option value="כדורגל">⚽ כדורגל</option>
@@ -186,7 +169,6 @@
         <div id="gamesList" class="games-container"></div>
     </div>
 
-    <!-- מודלים לצ'אט והתראות -->
     <div id="chatModal" class="modal-overlay">
         <div class="chat-modal">
             <div class="chat-header">
@@ -195,7 +177,7 @@
             </div>
             <div id="chatMessages" class="chat-messages"></div>
             <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="הקלד הודעה..." onkeypress="handleChatEnter(event)">
+                <input type="text" id="chatInput" placeholder="הקלד הודעה..." data-i18n-placeholder="chatPlaceholder" onkeypress="handleChatEnter(event)">
                 <button onclick="sendChatMessage()">➤</button>
             </div>
         </div>
@@ -203,18 +185,18 @@
     
     <div id="whatsappModal" class="modal-overlay">
         <div class="modal-content">
-            <h2 style="margin-top: 0; color: #333;">🎉 המפגש נפתח!</h2>
-            <button id="waShareBtn" class="wa-btn">💬 שלח בוואטסאפ</button>
-            <button onclick="closeModal()" class="close-btn" style="background:none; border:none; color:gray; text-decoration:underline; font-size: 1.1em; cursor:pointer; margin-top:10px;">סגור</button>
+            <h2 style="margin-top: 0; color: #333;" data-i18n="gameCreatedTitle">🎉 המפגש נפתח!</h2>
+            <button id="waShareBtn" class="wa-btn" data-i18n="whatsappBtn">💬 שלח בוואטסאפ</button>
+            <button onclick="closeModal()" class="close-btn" style="background:none; border:none; color:gray; text-decoration:underline; font-size: 1.1em; cursor:pointer; margin-top:10px;" data-i18n="closeBtn">סגור</button>
         </div>
     </div>
 
     <div id="toastNotification">התראה חדשה!</div>
 
-    <script src="js/lang.js?v=8.1"></script>
-    <script src="js/app.js?v=8.1"></script>
-    <script src="js/auth.js?v=8.1"></script>
-    <script src="js/chat.js?v=8.1"></script>
+    <script src="js/lang.js?v=8.2"></script>
+    <script src="js/app.js?v=8.2"></script>
+    <script src="js/auth.js?v=8.2"></script>
+    <script src="js/chat.js?v=8.2"></script>
 
 </body>
 </html>
