@@ -17,7 +17,6 @@
     <style> 
         .lang-btn { background: #27ae60; color: white; margin-right: 5px; margin-left: 5px;} 
         
-        /* עיצוב לקוביות מסך הבית החדש */
         .category-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -48,7 +47,6 @@
             margin-bottom: 10px;
         }
         
-        /* עיצוב כפתור החזרה מהמפה למסך הבית */
         .back-btn {
             background-color: #34495e;
             color: white;
@@ -107,7 +105,6 @@
         </div>
     </div>
 
-    <!-- מסך הבית וקוביות הקטגוריות -->
     <div id="homeScreen" style="display: none; padding: 20px; text-align: center; max-width: 600px; margin: 0 auto; padding-top: 40px;">
         <h2 id="welcomeMessage" style="font-size: 2.2em; color: #2c3e50; margin-bottom: 5px;">ברוך הבא!</h2>
         <h3 style="color: #7f8c8d; margin-bottom: 25px; font-weight: normal;">מה בא לך לעשות היום?</h3>
@@ -121,10 +118,9 @@
                 <div class="icon">⚽</div>
                 <div>כדורגל</div>
             </div>
-            <!-- קוביה חדשה למפגשים חברתיים -->
             <div class="category-card" onclick="openSocialApp()" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); grid-column: span 2;">
                 <div class="icon">🥂</div>
-                <div>מפגשים חברתיים (ללא מפה)</div>
+                <div>מפגשים חברתיים</div>
             </div>
         </div>
         
@@ -180,7 +176,7 @@
         <div id="gamesList" class="games-container"></div>
     </div>
 
-    <!-- אפליקציה חדשה: מפגשים חברתיים (ללא מפה) -->
+    <!-- אפליקציה חדשה: מפגשים חברתיים -->
     <div id="socialApp" style="display: none;">
         <div class="header-container" style="background: #8e44ad;">
             <button class="top-btn" style="visibility: hidden;">🌙</button>
@@ -193,15 +189,37 @@
         <div class="form-container">
             <h3>🥂 יצירת מפגש חברתי חדש</h3>
             <div id="newSocialGameForm">
-                <input type="text" id="socialCity" class="app-input" placeholder="🏙️ עיר המפגש" required>
+                <input type="text" id="socialCity" class="app-input" placeholder="🏙️ עיר / אזור המפגש" required>
                 
                 <select id="socialEventType" class="app-input" required>
                     <option value="" disabled selected>-- בחר סוג בילוי --</option>
-                    <option value="בר/פאב">🍻 יציאה לבר/פאב</option>
-                    <option value="ים">🏖️ הליכה או ישיבה בים</option>
-                    <option value="צפייה במשחק">📺 צפייה במשחק ספורט</option>
-                    <option value="פארק">🌳 ישיבה בפארק</option>
-                    <option value="אחר">אחר</option>
+                    <optgroup label="בילוי ופנאי">
+                        <option value="יציאה לבר/פאב">🍻 יציאה לבר/פאב</option>
+                        <option value="מסעדה">🍽️ מסעדה / אוכל</option>
+                        <option value="בית קפה">☕ ישיבה בבית קפה</option>
+                        <option value="ים">🏖️ הליכה או ישיבה בים</option>
+                        <option value="סרט/קולנוע">🍿 סרט בקולנוע</option>
+                        <option value="הופעת חיה">🎸 הופעה חיה / מוזיקה</option>
+                        <option value="סטנדאפ">🎭 מופע סטנדאפ</option>
+                    </optgroup>
+                    <optgroup label="ספורט ואקטיבי">
+                        <option value="צפייה במשחק">📺 צפייה במשחק ספורט</option>
+                        <option value="הליכה">🚶‍♂️ הליכה</option>
+                        <option value="ריצה">🏃‍♀️ ריצה משותפת</option>
+                        <option value="רכיבה על אופניים">🚴‍♂️ רכיבה על אופניים</option>
+                        <option value="יוגה/פילאטיס">🧘‍♀️ יוגה / פילאטיס</option>
+                        <option value="טיול בטבע">🏕️ טיול בטבע</option>
+                        <option value="אימון כושר">🏋️ אימון כושר בפארק</option>
+                    </optgroup>
+                    <optgroup label="תחביבים והעשרה">
+                        <option value="משחקי קופסה">🎲 משחקי קופסה</option>
+                        <option value="גיימינג">🎮 גיימינג / קונסולות</option>
+                        <option value="סדנת בישול">🍳 סדנת בישול / אפייה</option>
+                        <option value="קריאה/ספרים">📖 מפגש קריאה / ספרים</option>
+                        <option value="צילום">📸 סיור צילום</option>
+                        <option value="אמנות/ציור">🎨 יצירה / ציור</option>
+                    </optgroup>
+                    <option value="אחר">✨ משהו אחר</option>
                 </select>
 
                 <select id="socialPrefGender" class="app-input">
@@ -217,8 +235,10 @@
                     <input type="number" id="socialMaxAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מקסימלי" min="10" max="99">
                 </div>
                 
-                <div class="time-picker-wrapper" style="display: flex; margin-bottom: 15px;">
-                    <span style="align-self: center; margin-left: 10px;">שעת המפגש:</span>
+                <input type="date" id="socialGameDate" class="app-input" style="width: 90%; margin: 10px auto;" required>
+
+                <div class="time-picker-wrapper" style="display: flex; margin-bottom: 15px; justify-content: center;">
+                    <span style="align-self: center; margin-left: 10px;">שעה:</span>
                     <select id="socialGameHour"></select><span class="time-picker-separator">:</span><select id="socialGameMinute"></select>
                 </div>
                 
@@ -231,7 +251,6 @@
     </div>
 
 
-    <!-- מודלים נלווים -->
     <div id="chatModal" class="modal-overlay">
         <div class="chat-modal">
             <div class="chat-header">
@@ -256,10 +275,10 @@
 
     <div id="toastNotification">התראה חדשה!</div>
 
-    <script src="js/lang.js?v=7.0"></script>
-    <script src="js/app.js?v=7.0"></script>
-    <script src="js/auth.js?v=7.0"></script>
-    <script src="js/chat.js?v=7.0"></script>
+    <script src="js/lang.js?v=7.1"></script>
+    <script src="js/app.js?v=7.1"></script>
+    <script src="js/auth.js?v=7.1"></script>
+    <script src="js/chat.js?v=7.1"></script>
 
 </body>
 </html>

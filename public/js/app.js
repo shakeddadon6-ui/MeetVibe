@@ -57,12 +57,20 @@ function openSocialApp() {
     document.getElementById('mainApp').style.display = 'none';
     document.getElementById('socialApp').style.display = 'block';
     
-    // קביעת זמן ברירת מחדל בעוד שעה
-    const now = new Date(); now.setHours(now.getHours() + 1);
+    // קביעת תאריך ושעה לברירת מחדל
+    const now = new Date(); 
+    
+    // הזנת תאריך של היום
+    const dateInput = document.getElementById('socialGameDate');
+    if (dateInput) {
+        dateInput.value = now.toISOString().split('T')[0];
+    }
+    
+    now.setHours(now.getHours() + 1);
     document.getElementById('socialGameHour').value = String(now.getHours()).padStart(2, '0'); 
     document.getElementById('socialGameMinute').value = String(now.getMinutes()).padStart(2, '0');
     
-    loadGames(); // טעינת האירועים, הפונקציה כבר תדע לחלק אותם
+    loadGames(); 
 }
 window.openSocialApp = openSocialApp;
 
@@ -105,8 +113,6 @@ window.updateMapLanguage = updateMapLanguage;
 
 const basketballIcon = L.divIcon({ html: '<div style="font-size: 26px;">🏀</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
 const footballIcon = L.divIcon({ html: '<div style="font-size: 26px;">⚽</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
-const pubIcon = L.divIcon({ html: '<div style="font-size: 26px;">🍻</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
-const parkIcon = L.divIcon({ html: '<div style="font-size: 26px;">🌳</div>', className: 'empty-class', iconSize: [30, 30], iconAnchor: [15, 15] });
 
 let allCourts = []; let allGames = []; let userHasLocation = false; let selectedSportFilter = 'all'; 
 let heatLayer = null; 
@@ -179,8 +185,6 @@ async function loadCourtsAndLocation() {
         allCourts.forEach(court => {
             let icon = basketballIcon; 
             if (court.SportType === 'Football') icon = footballIcon;
-            else if (court.SportType === 'Pub') icon = pubIcon;
-            else if (court.SportType === 'Park') icon = parkIcon;
 
             const marker = L.marker([court.Latitude, court.Longitude], {icon: icon}); 
             marker.bindPopup(`<b>${getDisplayCourtName(court)}</b>`); 
@@ -233,7 +237,6 @@ async function loadGames() {
 }
 window.loadGames = loadGames;
 
-// פונקציה לבניית כרטיסייה גנרית (גם לספורט וגם לחברתי)
 function createGameCardHtml(game, c, diffMins, formattedDate, timeString) {
     let timeBadgeHtml = '';
     if (game.GameStatus === 'Cancelled') {
@@ -327,7 +330,6 @@ function renderGamesList(gamesToRender = allGames) {
             hasSocialGames = true;
         } else {
             const c = allCourts.find(court => court.CourtName === game.CourtName); 
-            // סינון עבור משחקי ספורט בלבד (מבוסס מגרש)
             let showSportGame = true;
             if (selectedSportFilter !== 'all' && selectedSportFilter !== 'my_games') {
                 if (c && c.SportType !== selectedSportFilter) showSportGame = false;
@@ -391,14 +393,14 @@ async function updateGameStatus(gameId, status) {
 }
 window.updateGameStatus = updateGameStatus;
 
-// פונקציה אחידה ליצירת מפגשים (מקבלת isSocial בוליאני)
 async function createNewGame(isSocial = false) {
     let payload = {
         creatorPlayerId: parseInt(myUserId),
         isSocial: isSocial
     };
 
-    let sqlStartTime; const now = new Date();
+    let sqlStartTime; 
+    const now = new Date();
 
     if (isSocial) {
         const city = document.getElementById('socialCity').value.trim();
@@ -407,16 +409,23 @@ async function createNewGame(isSocial = false) {
         const minAgeVal = parseInt(document.getElementById('socialMinAge').value) || 10;
         const maxAgeVal = parseInt(document.getElementById('socialMaxAge').value) || 99;
         const prefGender = document.getElementById('socialPrefGender').value;
+        const dateStr = document.getElementById('socialGameDate').value;
 
         if (!city) { alert("אנא הקלד עיר."); return; }
         if (!eventType) { alert("אנא בחר סוג בילוי."); return; }
+        if (!dateStr) { alert("אנא בחר תאריך."); return; }
         if (!missingPlayers || missingPlayers < 1) { alert("אנא הזן כמה אנשים חסרים."); return; }
         if (minAgeVal > maxAgeVal) { alert("הגיל המינימלי לא יכול להיות גדול מהמקסימלי."); return; }
 
         const hStr = document.getElementById('socialGameHour').value; 
         const mStr = document.getElementById('socialGameMinute').value; 
-        const gameTime = new Date(); gameTime.setHours(parseInt(hStr), parseInt(mStr), 0, 0);
-        if (gameTime < now && (now - gameTime) > 300000) { alert(t("timePastError")); return; }
+        
+        // יצירת אובייקט תאריך מהקלט ושילוב השעה
+        const gameTime = new Date(dateStr);
+        gameTime.setHours(parseInt(hStr), parseInt(mStr), 0, 0);
+        
+        if (gameTime < now && (now - gameTime) > 300000) { alert("❌ שגיאה: בחרת תאריך או שעה שכבר עברו."); return; }
+        
         sqlStartTime = `${gameTime.getFullYear()}-${String(gameTime.getMonth() + 1).padStart(2, '0')}-${String(gameTime.getDate()).padStart(2, '0')} ${hStr}:${mStr}:00`;
 
         payload = { ...payload, city, eventType, missingPlayers: parseInt(missingPlayers), minAge: minAgeVal, maxAge: maxAgeVal, prefGender, startTime: sqlStartTime, courtId: null };
@@ -492,9 +501,7 @@ function showToast(message) {
 window.showToast = showToast;
 
 function showNotificationWithSound(message) {
-    showToast(message); // מציג את הבועה הוויזואלית
-    
-    // מנגן סאונד רק אם המשתמש לא במצב שקט / המערכת מאפשרת אודיו
+    showToast(message); 
     try {
         const sound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
         sound.volume = 0.2;
@@ -505,16 +512,11 @@ function showNotificationWithSound(message) {
     } catch (err) {}
 }
 
-// ==========================================
-// מנגנון בדיקת התראות ועדכונים מהיר ברקע (Real-time Sync)
-// ==========================================
 let lastKnownGamesCount = 0;
-
 
 async function checkBackgroundNotifications() {
     if (!myUserId) return;
     try {
-        // 1. בדיקת משחקים חדשים שנוספו במערכת (עם סאונד רקע לכולם חוץ מהיוצר)
         const allGamesRes = await fetch('/api/games?t=' + Date.now());
         const currentGames = await allGamesRes.json();
         
@@ -526,7 +528,6 @@ async function checkBackgroundNotifications() {
         }
         lastKnownGamesCount = currentGames.length;
 
-        // 2. בדיקת הודעות מערכת (הצטרפות, עזיבה, ביטול משחק) במשחקים שהמשתמש שייך אליהם
         const response = await fetch(`/api/games/history/${myUserId}?t=` + Date.now());
         const myGames = await response.json();
         
@@ -537,7 +538,6 @@ async function checkBackgroundNotifications() {
             if (messages && messages.length > 0) {
                 const lastMsg = messages[messages.length - 1];
                 
-                // תופס כל הודעת מערכת (הצטרפות, עזיבה, ביטול)
                 if (lastMsg.SenderName === 'מערכת') {
                     const msgKey = `notified_msg_${game.GameID}_${messages.length}`;
                     if (!localStorage.getItem(msgKey)) {
@@ -555,9 +555,7 @@ async function checkBackgroundNotifications() {
             }
         }
     } catch (e) {
-        // התעלמות משגיאות רשת זמניות ברקע
     }
 }
 
-// בדיקה מהירה כל 1.5 שניות לקבלת תגובה מיידית לכל אירוע!
 setInterval(checkBackgroundNotifications, 1500);
