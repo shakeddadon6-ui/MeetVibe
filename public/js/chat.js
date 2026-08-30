@@ -2,7 +2,7 @@
 // קובץ chat.js - ניהול הצ'אט בזמן אמת עם Socket.io
 // ==========================================
 
-let socket = io(); // התחברות לשרת ה-WebSocket
+let socket = io(); 
 let currentChatGameId = null;
 
 function openChat(gameId, courtName) {
@@ -10,10 +10,7 @@ function openChat(gameId, courtName) {
     document.getElementById('chatTitle').innerText = "💬 " + courtName;
     document.getElementById('chatModal').style.display = 'flex';
     
-    // הצטרפות לחדר בשרת
     socket.emit('join_game_room', gameId);
-    
-    // טעינת ההודעות ההיסטוריות פעם אחת בפתיחה
     loadChatMessages();
 }
 window.openChat = openChat;
@@ -24,14 +21,16 @@ function closeChat() {
 }
 window.closeChat = closeChat;
 
-// האזנה להודעות חדשות בזמן אמת מהשרת
+// האזנה להודעות חדשות בזמן אמת
 socket.on('receive_message', (msg) => {
-    if (!currentChatGameId) return;
+    // תיקון באג ה-0 בקבלת הודעות
+    if (currentChatGameId === null || currentChatGameId === undefined) return;
     appendMessageToDOM(msg);
 });
 
 async function loadChatMessages() {
-    if (!currentChatGameId) return;
+    // תיקון באג ה-0 בטעינת הודעות
+    if (currentChatGameId === null || currentChatGameId === undefined) return;
     try {
         const res = await fetch(`/api/games/${currentChatGameId}/chat?t=` + Date.now(), {
             headers: window.getAuthHeaders ? window.getAuthHeaders() : {}
@@ -65,7 +64,6 @@ function appendMessageToDOM(msg) {
 
     let isUserAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
 
-    // תיקון: שליפת שם המשתמש המחובר ישירות מ-localStorage
     const currentUsername = localStorage.getItem('sportMatchUser') || '';
     const isMe = msg.SenderName === currentUsername;
 
@@ -102,16 +100,14 @@ function appendMessageToDOM(msg) {
 function sendChatMessage() {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
-    
-    // עצירה אם לא הוקלד טקסט
     if (!text) return;
     
-    // התיקון: בדיקה מפורשת ל-null ו-undefined כדי ש-0 יעבור בהצלחה
+    // תיקון באג ה-0 בשליחת הודעה
     if (currentChatGameId === null || currentChatGameId === undefined) return;
     
     const senderName = localStorage.getItem('sportMatchUser') || 'משתמש';
 
-    // שליחת הודעה דרך Socket.io לשרת
+    // שליחת הודעה ישירות דרך Socket.io לשרת בזמן אמת
     socket.emit('send_message', {
         gameId: currentChatGameId,
         senderName: senderName,
@@ -121,7 +117,6 @@ function sendChatMessage() {
     input.value = '';
 }
 window.sendChatMessage = sendChatMessage;
-
 
 function handleChatEnter(e) {
     if (e.key === 'Enter') sendChatMessage();
