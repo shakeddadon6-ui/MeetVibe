@@ -73,10 +73,13 @@ io.on('connection', (socket) => {
     socket.on('send_message', async (data) => {
         try {
             const { gameId, senderName, messageText } = data;
-            await sql.connect(sqlConfig);
+            
+            // שמירת ההודעה במסד הנתונים (ללא התחברות כפולה)
             await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'${senderName.replace(/'/g, "''")}', N'${messageText.replace(/'/g, "''")}')`);
             
             const timeNow = new Date().toTimeString().substring(0, 5);
+            
+            // שידור ההודעה לכל המשתמשים שנמצאים באותו חדר משחק
             io.to(`game_${gameId}`).emit('receive_message', {
                 SenderName: senderName,
                 MessageText: messageText,
@@ -84,6 +87,12 @@ io.on('connection', (socket) => {
             });
         } catch (err) {
             console.error("Socket chat error:", err);
+            // שליחת התראה חזרה למשתמש שניסה לשלוח במקרה של שגיאה
+            socket.emit('receive_message', {
+                SenderName: 'מערכת',
+                MessageText: '❌ שגיאה בשליחת ההודעה. נסה שוב.',
+                SendTime: new Date().toTimeString().substring(0, 5)
+            });
         }
     });
 });
