@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ app.js - מנגנון הליבה (מעודכן לתמיכה ב-JWT Token)
+// קובץ app.js - מנגנון הליבה (לאחר ניקוי ופיצול)
 // ==========================================
 
 let myUserId = localStorage.getItem('sportMatchUserId');
@@ -16,7 +16,7 @@ function getAuthHeaders() {
         'Authorization': 'Bearer ' + token
     };
 }
-window.getAuthHeaders = getAuthHeaders; // נחשוף אותה גם לקובץ הצאט
+window.getAuthHeaders = getAuthHeaders;
 
 window.onload = function() {
     if (myUserId && myUsername && localStorage.getItem('sportMatchToken')) { 
@@ -89,7 +89,6 @@ function showMainApp() {
     const savedUsername = localStorage.getItem('sportMatchUser');
     if (savedUsername) { document.getElementById('welcomeMessage').innerText = "אהלן " + savedUsername + "!"; }
 
-    // בדיקה האם המשתמש המחובר הוא מנהל והצגת כפתור ניהול בהתאם
     const isAdmin = localStorage.getItem('sportMatchIsAdmin') === 'true';
     let adminBtn = document.getElementById('adminPanelBtn');
     
@@ -123,225 +122,6 @@ window.showMainApp = showMainApp;
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 window.toggleDarkMode = toggleDarkMode;
 
-async function loadGames() {
-    try { 
-        // רשימה פתוחה - אין צורך בטוקן
-        const response = await fetch('/api/games?t=' + Date.now()); 
-        allGames = await response.json(); 
-        
-        if (myUserId) {
-            // היסטוריה אישית - דורשת טוקן אבטחה
-            const histRes = await fetch(`/api/games/history/${myUserId}?t=` + Date.now(), { headers: getAuthHeaders() });
-            myHistoryGames = await histRes.json();
-        }
-        filterGamesList(); 
-    } catch (error) { console.error("שגיאה בטעינת המפגשים", error); }
-}
-window.loadGames = loadGames;
-
-function filterGamesList() {
-    const filterCity = (document.getElementById('filterCity')?.value || '').trim().toLowerCase();
-    const filterType = document.getElementById('filterType')?.value || 'all';
-
-    const container = document.getElementById('gamesList');
-    if (!container) return;
-    container.innerHTML = '';
-
-    let gamesToRender = (filterType === 'my_games') ? myHistoryGames : allGames;
-    let matchedCount = 0;
-
-    gamesToRender.forEach(game => {
-        const matchCity = !filterCity || (game.City && game.City.toLowerCase().includes(filterCity));
-        const matchType = (filterType === 'all' || filterType === 'my_games') || (game.EventType && game.EventType.includes(filterType));
-
-        if (matchCity && matchType) {
-            const parts = game.StartTimeStr.split(/[- :]/); 
-            const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
-            const formattedDate = gameDate.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' });
-            const timeString = `${String(gameDate.getHours()).padStart(2, '0')}:${String(gameDate.getMinutes()).padStart(2, '0')}`;
-            const diffMins = Math.floor((gameDate - new Date()) / 60000);
-
-            const card = document.createElement('div');
-            card.className = 'game-card';
-            card.innerHTML = createGameCardHtml(game, diffMins, formattedDate, timeString);
-            container.appendChild(card);
-            matchedCount++;
-        }
-    });
-
-    if (matchedCount === 0) {
-        const noGamesTxt = window.t ? window.t("noGames") : "לא נמצאו מפגשים שתואמים את הסינון שבחרת.";
-        container.innerHTML = `<p style="text-align:center; color:#7f8c8d; padding:20px;">${noGamesTxt}</p>`;
-    }
-}
-window.filterGamesList = filterGamesList;
-
-function createGameCardHtml(game, diffMins, formattedDate, timeString) {
-    let timeBadgeHtml = '';
-    if (game.GameStatus === 'Cancelled') {
-        timeBadgeHtml = `<div class="time-badge" style="background:#e74c3c;color:white;">מבוטל - ${formattedDate} (${timeString})</div>`;
-    } else if (diffMins < -120) {
-        timeBadgeHtml = `<div class="time-badge" style="background:#95a5a6;color:white;">⚪ ${formattedDate} | ${timeString}</div>`;
-    } else if (diffMins <= 30) {
-        timeBadgeHtml = `<div class="time-badge time-now">🟢 ${formattedDate} | ${timeString} (קורה עכשיו)</div>`;
-    } else {
-        timeBadgeHtml = `<div class="time-badge time-future">🕰️ ${formattedDate} | ${timeString}</div>`;
-    }
-
-    const isCreator = parseInt(myUserId) === game.CreatorPlayerID;
-    const joinedPlayers = game.JoinedPlayersStr ? game.JoinedPlayersStr.split(',').filter(id => id !== '') : [];
-    const hasJoined = joinedPlayers.includes(String(myUserId));
-    const chatName = game.EventType + ' ב' + game.City;
-    
-    let joinControlsHtml = '';
-    if (!isCreator && game.GameStatus !== 'Cancelled' && diffMins >= -120) {
-        if (hasJoined) {
-            joinControlsHtml = `<button class="join-btn" style="background-color: #95a5a6;" onclick="leaveGame(${game.GameID})">ביטול הגעה</button>`;
-        } else {
-            joinControlsHtml = `<button class="join-btn" onclick="joinGame(${game.GameID}, '${chatName}')">🙋‍♂️ אני בא!</button>`;
-        }
-    }
-
-    let creatorControlsHtml = '';
-    if (isCreator && game.GameStatus === 'Open' && diffMins >= -120) {
-        creatorControlsHtml = `
-        <div class="btn-group" style="margin-top: 10px;">
-            <button onclick="updateGameStatus(${game.GameID}, 'Cancelled')" style="background-color: #e74c3c; color: white; padding: 8px; border: none; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold;">בטל מפגש</button>
-            <button onclick="updateGameStatus(${game.GameID}, 'Full')" style="background-color: #f39c12; color: white; padding: 8px; border: none; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold;">סמן כמלא</button>
-        </div>`;
-    }
-
-    const chatBtn = `<button class="chat-btn" onclick="openChat(${game.GameID}, '${chatName}')">💬 צ'אט לקביעת מיקום</button>`;
-    const ageHtml = `<div class="detail" style="color: #8e44ad; font-weight: bold; font-size: 0.95em; margin-top: 5px;">🎯 גילאים: ${game.MinAge} - ${game.MaxAge} | מגדר: ${game.PrefGender}</div>`;
-    
-    let iconStr = '🥂';
-    if(game.EventType.includes('כדורגל')) iconStr = '⚽';
-    if(game.EventType.includes('כדורסל')) iconStr = '🏀';
-    if(game.EventType.includes('טניס')) iconStr = '🎾';
-    if(game.EventType.includes('כדורעף')) iconStr = '🏐';
-    
-    return `<div class="court-name">${iconStr} ${game.EventType} ב${game.City}</div>
-            <div class="detail"><strong>👤 יוצר:</strong> ${game.CreatorName}</div>
-            ${timeBadgeHtml}
-            ${ageHtml}
-            <div class="badge">מחפשים עוד ${game.MissingPlayers} חבר'ה</div>
-            <div class="btn-group">${joinControlsHtml} ${chatBtn}</div>
-            ${creatorControlsHtml}`;
-}
-
-async function joinGame(gameId, courtName) {
-    try {
-        const response = await fetch(`/api/games/${gameId}/join`, { 
-            method: 'PUT', 
-            headers: getAuthHeaders(), // שימוש בטוקן
-            body: JSON.stringify({ userId: myUserId }) 
-        });
-        const data = await response.json();
-        if (response.ok) { 
-            showToast("הצטרפת בהצלחה! 🎉"); 
-            alert("הצטרפת למפגש בהצלחה! תוכל כעת להכנס לצ'אט ולקבוע מיקום מדויק."); 
-            loadGames(); 
-            openChat(gameId, courtName); 
-        } else { alert(data.error); }
-    } catch (error) { alert("שגיאת רשת"); }
-}
-window.joinGame = joinGame;
-
-async function leaveGame(gameId) {
-    try {
-        const response = await fetch(`/api/games/${gameId}/leave`, { 
-            method: 'PUT', 
-            headers: getAuthHeaders(), // שימוש בטוקן
-            body: JSON.stringify({ userId: myUserId }) 
-        });
-        const data = await response.json();
-        if (response.ok) { 
-            alert("עזבת את המפגש."); 
-            loadGames(); 
-        } else { alert(data.error); }
-    } catch (error) { alert("שגיאת רשת"); }
-}
-window.leaveGame = leaveGame;
-
-async function updateGameStatus(gameId, status) {
-    const confirmMsg = status === 'Cancelled' ? "האם אתה בטוח שברצונך לבטל את המפגש?" : "האם המפגש מלא?";
-    if (!confirm(confirmMsg)) return;
-    try {
-        const response = await fetch(`/api/games/${gameId}/status`, { 
-            method: 'PUT', 
-            headers: getAuthHeaders(), // שימוש בטוקן
-            body: JSON.stringify({ userId: myUserId, status: status }) 
-        });
-        const data = await response.json();
-        if (response.ok) { 
-            alert(status === 'Cancelled' ? "המפגש בוטל." : "המפגש סומן כמלא."); 
-            loadGames(); 
-        } else { alert(data.error || "שגיאת שרת"); }
-    } catch (error) { alert("שגיאת רשת"); }
-}
-window.updateGameStatus = updateGameStatus;
-
-async function createNewGame() {
-    const city = document.getElementById('gameCity').value.trim();
-    const eventType = document.getElementById('gameEventType').value;
-    const missingPlayers = document.getElementById('gameMissingPlayers').value;
-    const minAgeVal = parseInt(document.getElementById('gameMinAge').value) || 10;
-    const maxAgeVal = parseInt(document.getElementById('gameMaxAge').value) || 99;
-    const prefGender = document.getElementById('gamePrefGender').value;
-    const dateStr = document.getElementById('gameDate').value;
-
-    if (!city || !eventType || !dateStr) { alert("אנא מלא את כל שדות החובה."); return; }
-    if (!missingPlayers || missingPlayers < 1) { alert("אנא הזן כמה אנשים חסרים."); return; }
-    if (minAgeVal > maxAgeVal) { alert("הגיל המינימלי לא יכול להיות גדול מהמקסימלי."); return; }
-
-    const hStr = document.getElementById('gameHour').value; 
-    const mStr = document.getElementById('gameMinute').value; 
-    const now = new Date();
-    const gameTime = new Date(dateStr);
-    gameTime.setHours(parseInt(hStr), parseInt(mStr), 0, 0);
-    
-    if (gameTime < now && (now - gameTime) > 300000) { alert("❌ שגיאה: בחרת תאריך או שעה שכבר עברו."); return; }
-    
-    const sqlStartTime = `${gameTime.getFullYear()}-${String(gameTime.getMonth() + 1).padStart(2, '0')}-${String(gameTime.getDate()).padStart(2, '0')} ${hStr}:${mStr}:00`;
-
-    const payload = {
-        city, eventType, missingPlayers: parseInt(missingPlayers), 
-        minAge: minAgeVal, maxAge: maxAgeVal, prefGender, startTime: sqlStartTime
-    };
-    
-    try {
-        const submitBtn = document.querySelector('.submit-btn');
-        submitBtn.innerText = "יוצר מפגש..."; submitBtn.disabled = true; 
-        
-        const response = await fetch('/api/games', { 
-            method: 'POST', 
-            headers: getAuthHeaders(), // שימוש בטוקן 
-            body: JSON.stringify(payload) 
-        });
-        
-        if(response.ok) { 
-            document.getElementById('gameCity').value = '';
-            document.getElementById('gameMissingPlayers').value = '';
-            document.getElementById('gameMinAge').value = ''; 
-            document.getElementById('gameMaxAge').value = '';
-            document.getElementById('gameEventType').value = '';
-            
-            loadGames(); 
-            document.getElementById('whatsappModal').style.display = 'flex'; 
-        } 
-        else { const data = await response.json(); alert("שגיאה: " + (data.error || "")); }
-        submitBtn.innerText = "צור מפגש!"; submitBtn.disabled = false;
-    } catch (error) { 
-        alert("שגיאת רשת"); 
-        document.querySelector('.submit-btn').innerText = "צור מפגש!"; 
-        document.querySelector('.submit-btn').disabled = false; 
-    }
-}
-window.createNewGame = createNewGame;
-
-function closeModal() { document.getElementById('whatsappModal').style.display = 'none'; }
-window.closeModal = closeModal;
-
 function showToast(message) {
     const toast = document.getElementById('toastNotification');
     if (!toast) return;
@@ -374,12 +154,10 @@ async function checkBackgroundNotifications() {
         }
         lastKnownGamesCount = currentGames.length;
 
-        // קריאה היסטורית הדורשת טוקן אבטחה
         const histRes = await fetch(`/api/games/history/${myUserId}?t=` + Date.now(), { headers: getAuthHeaders() });
         const myGames = await histRes.json();
         
         for (const game of myGames) {
-            // צ'אט דורש טוקן אבטחה
             const chatRes = await fetch(`/api/games/${game.GameID}/chat?t=` + Date.now(), { headers: getAuthHeaders() });
             const messages = await chatRes.json();
             
@@ -398,141 +176,3 @@ async function checkBackgroundNotifications() {
     } catch (e) {}
 }
 setInterval(checkBackgroundNotifications, 1500);
-
-// ==========================================
-// פאנל ניהול (Admin Dashboard)
-// ==========================================
-
-async function openAdminPanel() {
-    let modal = document.getElementById('adminModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'adminModal';
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="chat-modal" style="max-width: 600px; height: 85vh; background: var(--bg-color, white);">
-                <div class="chat-header" style="background: #d35400;">
-                    <span>⚙️ פאנל ניהול מערכת</span>
-                    <button class="chat-close-btn" onclick="closeAdminPanel()">&times;</button>
-                </div>
-                <div id="adminContent" style="padding: 20px; overflow-y: auto; flex: 1; text-align: right;">
-                    <p>טוען משתמשים...</p>
-                </div>
-            </div>`;
-        document.body.appendChild(modal);
-    }
-    modal.style.display = 'flex';
-    loadAdminPlayers();
-}
-window.openAdminPanel = openAdminPanel;
-
-function closeAdminPanel() {
-    const modal = document.getElementById('adminModal');
-    if (modal) modal.style.display = 'none';
-}
-window.closeAdminPanel = closeAdminPanel;
-
-async function loadAdminPlayers() {
-    const container = document.getElementById('adminContent');
-    if (!container) return;
-    
-    try {
-        // שליפת משתמשים ודיווחים במקביל
-        const [playersRes, reportsRes] = await Promise.all([
-            fetch('/api/admin/players', { headers: getAuthHeaders() }),
-            fetch('/api/admin/reports', { headers: getAuthHeaders() })
-        ]);
-
-        if (!playersRes.ok || !reportsRes.ok) {
-            container.innerHTML = `<p style="color:red; text-align:center;">אין לך הרשאה לצפות בפאנל זה.</p>`;
-            return;
-        }
-
-        const players = await playersRes.json();
-        const reports = await reportsRes.json();
-        
-        let html = '';
-
-        // הצגת התראות אדומות על דיווחים חדשים אם יש
-        if (reports.length > 0) {
-            html += `
-                <div style="background: #fde8e8; border: 2px solid #e74c3c; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                    <h3 style="color: #c0392b; margin-top: 0; margin-bottom: 10px;">🚨 דיווחים ממתינים לטיפול (${reports.length})</h3>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">`;
-            
-            reports.forEach(r => {
-                html += `
-                    <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #f5c6cb; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>מדווח:</strong> ${r.ReporterName} | <strong>מוזהר/מדווח עליו:</strong> <span style="color: #c0392b;">${r.ReportedName}</span><br>
-                            <strong>סיבה:</strong> ${r.Reason} <br><small style="color: #7f8c8d;">${r.ReportDateStr}</small>
-                        </div>
-                        <button onclick="deletePlayer(${r.ReportedUserID})" style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9em;">מחק משתמש פוגע</button>
-                    </div>`;
-            });
-            html += `</div></div>`;
-        }
-
-        // רשימת המשתמשים הרגילה
-        html += `<h3 style="margin-bottom: 15px; color: #2c3e50;">👥 רשומים במערכת (${players.length})</h3>`;
-        html += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
-        
-        players.forEach(p => {
-            html += `
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong>${p.FullName}</strong> (${p.Phone})<br>
-                        <small style="color: #64748b;">גיל: ${p.Age} | מגדר: ${p.Gender} ${p.IsAdmin ? ' | ⭐ מנהל מערכת' : ''}</small>
-                    </div>
-                    ${!p.IsAdmin ? `<button onclick="deletePlayer(${p.PlayerID})" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">מחק משתמש</button>` : ''}
-                </div>`;
-        });
-        html += `</div>`;
-        
-        container.innerHTML = html;
-    } catch (err) {
-        container.innerHTML = `<p style="color:red; text-align:center;">שגיאה בטעינת הנתונים מהשרת.</p>`;
-    }
-}
-
-async function deletePlayer(playerId) {
-    if (!confirm("האם אתה בטוח שברצונך למחוק את המשתמש לצמיתות?")) return;
-    try {
-        const res = await fetch(`/api/admin/players/${playerId}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-        if (res.ok) {
-            alert("המשתמש נמחק בהצלחה.");
-            loadAdminPlayers();
-            loadGames();
-        } else {
-            alert("תקלה במחיקת המשתמש.");
-        }
-    } catch (err) {
-        alert("שגיאת רשת.");
-    }
-}
-window.deletePlayer = deletePlayer;
-
-// פתיחת חלון דיווח על משתמש
-function openReportModal(reportedUserId, reportedUserName) {
-    const reason = prompt(`למה אתה רוצה לדווח על ${reportedUserName}?\n(לדוגמה: התנהגות לא הולמת, הטרדה וכו')`);
-    if (!reason || reason.trim() === '') return;
-
-    fetch('/api/reports', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ reportedUserId, reason })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            alert("הדיווח נשלח בהצלחה למנהלי המערכת. תודה שאתה שומר על הקהילה.");
-        } else {
-            alert(data.error || "שגיאה בשליחת הדיווח");
-        }
-    })
-    .catch(() => alert("שגיאת רשת"));
-}
-window.openReportModal = openReportModal;
