@@ -95,11 +95,12 @@ async function initDB() {
 
         await sql.query(`
             IF COL_LENGTH('Players', 'Age') IS NULL ALTER TABLE Players ADD Age INT DEFAULT 18;
+            IF COL_LENGTH('Players', 'Gender') IS NULL ALTER TABLE Players ADD Gender NVARCHAR(10) DEFAULT N'לא מוגדר';
             IF COL_LENGTH('Games', 'MinAge') IS NULL ALTER TABLE Games ADD MinAge INT DEFAULT 10;
             IF COL_LENGTH('Games', 'MaxAge') IS NULL ALTER TABLE Games ADD MaxAge INT DEFAULT 99;
         `);
 
-        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן, כולל מערכת משתתפים חכמה!");
+        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן, כולל מערכת משתתפים חכמה ושדרוג מגדר!");
     } catch (err) {
         console.error("DB Init Error:", err);
     }
@@ -108,7 +109,7 @@ initDB();
 
 // הרשמה
 app.post('/api/register', async (req, res) => {
-    const { fullName, phone, password, age } = req.body;
+    const { fullName, phone, password, age, gender } = req.body;
     try {
         await sql.connect(sqlConfig);
         const checkUser = await sql.query(`SELECT PlayerID FROM Players WHERE Phone = '${phone}'`);
@@ -117,8 +118,9 @@ app.post('/api/register', async (req, res) => {
         }
         const safeName = fullName.replace(/'/g, "''");
         const playerAge = age || 18; 
+        const safeGender = gender || 'לא מוגדר';
         
-        await sql.query(`INSERT INTO Players (FullName, Phone, Password, Age) VALUES (N'${safeName}', '${phone}', '${password}', ${playerAge})`);
+        await sql.query(`INSERT INTO Players (FullName, Phone, Password, Age, Gender) VALUES (N'${safeName}', '${phone}', '${password}', ${playerAge}, N'${safeGender}')`);
         res.status(201).json({ success: true, message: "נרשמת בהצלחה!" });
     } catch (err) { res.status(500).json({ error: "תקלה בהרשמה." }); }
 });
@@ -128,7 +130,7 @@ app.post('/api/login', async (req, res) => {
     const { phone, password } = req.body;
     try {
         await sql.connect(sqlConfig);
-        const checkUser = await sql.query(`SELECT PlayerID, FullName, Password, Age FROM Players WHERE Phone = '${phone}'`);
+        const checkUser = await sql.query(`SELECT PlayerID, FullName, Password, Age, Gender FROM Players WHERE Phone = '${phone}'`);
         if (checkUser.recordset.length === 0) {
             return res.status(404).json({ code: 'not_found', error: "המספר לא קיים במערכת." });
         }
@@ -136,7 +138,7 @@ app.post('/api/login', async (req, res) => {
         if (user.Password !== password) {
             return res.status(401).json({ code: 'wrong_password', error: "סיסמה שגויה." });
         }
-        res.json({ success: true, userId: user.PlayerID, userName: user.FullName, userAge: user.Age });
+        res.json({ success: true, userId: user.PlayerID, userName: user.FullName, userAge: user.Age, userGender: user.Gender });
     } catch (err) { res.status(500).json({ error: "תקלה בהתחברות." }); }
 });
 
@@ -175,8 +177,6 @@ app.post('/api/games', async (req, res) => {
         res.status(500).json({ error: "תקלה בפתיחת המשחק." }); 
     }
 });
-
-
 
 // משיכת משחקים רגילה (רק פעילים)
 app.get('/api/games', async (req, res) => {
@@ -250,7 +250,7 @@ app.put('/api/games/:id/join', async (req, res) => {
         // עדכון סטטוס המשחק
         await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = '${missing === 0 ? 'Full' : 'Open'}' WHERE GameID = ${gameId}`);
         
-        // 👇 התוספת: הכנסת הודעת מערכת אוטומטית לצ'אט של המשחק!
+        // הכנסת הודעת מערכת אוטומטית לצ'אט של המשחק!
         await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'🔔 ${joiningUserName} הצטרף/ה למשחק!')`);
 
         res.json({ success: true, missingPlayers: missing });
@@ -265,7 +265,7 @@ app.put('/api/games/:id/leave', async (req, res) => {
 
         await sql.connect(sqlConfig);
         
-        // 🔍 הוספה: שליפת שם המשתמש שעוזב כדי שנוכל לרשום אותו בהתראה
+        // שליפת שם המשתמש שעוזב כדי שנוכל לרשום אותו בהתראה
         const userCheck = await sql.query(`SELECT FullName FROM Players WHERE PlayerID = ${userId}`);
         const leavingUserName = userCheck.recordset.length > 0 ? userCheck.recordset[0].FullName : "שחקן";
 
@@ -277,7 +277,7 @@ app.put('/api/games/:id/leave', async (req, res) => {
         let missing = check.recordset[0].MissingPlayers + 1;
         await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = 'Open' WHERE GameID = ${gameId}`);
         
-        // 🔔 הוספה: שליחת הודעת מערכת אוטומטית לצ'אט על כך שהשחקן ביטל את הגעתו
+        // שליחת הודעת מערכת אוטומטית לצ'אט על כך שהשחקן ביטל את הגעתו
         await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ ${leavingUserName} ביטל/ה את הגעתו/ה למשחק')`);
 
         res.json({ success: true, missingPlayers: missing });
@@ -297,7 +297,7 @@ app.put('/api/games/:id/status', async (req, res) => {
         }
         await sql.query(`UPDATE Games SET GameStatus = '${status}' WHERE GameID = ${gameId}`);
         
-        // 🔔 הוספה: אם סטטוס המשחק שונה ל-'Cancelled' (בוטל), נשלח הודעת מערכת אוטומטית לצ'אט
+        // אם סטטוס המשחק שונה ל-'Cancelled' (בוטל), נשלח הודעת מערכת אוטומטית לצ'אט
         if (status === 'Cancelled') {
             await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ המשחק בוטל על ידי היוצר')`);
         }
