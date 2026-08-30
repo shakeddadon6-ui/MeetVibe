@@ -98,39 +98,31 @@ function appendMessageToDOM(msg) {
         container.scrollTop = container.scrollHeight;
     }
 }
+
 function sendChatMessage() {
-    console.log("1. כפתור השליחה נלחץ!");
-    
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
     
-    console.log("2. הטקסט שהוקלד:", text);
-    console.log("3. מזהה המשחק הנוכחי (currentChatGameId):", currentChatGameId);
-
-    if (!text) {
-        console.log("❌ עצירה: לא הוקלד טקסט.");
-        return;
-    }
+    // עצירה אם לא הוקלד טקסט
+    if (!text) return;
     
-    if (!currentChatGameId) {
-        console.log("❌ עצירה: ה-ID של המשחק חסר (null).");
-        return;
-    }
+    // התיקון: בדיקה מפורשת ל-null ו-undefined כדי ש-0 יעבור בהצלחה
+    if (currentChatGameId === null || currentChatGameId === undefined) return;
     
     const senderName = localStorage.getItem('sportMatchUser') || 'משתמש';
-    console.log("4. השם שיישלח לשרת:", senderName);
 
-    // שליחת הודעה
+    // שליחת הודעה דרך Socket.io לשרת
     socket.emit('send_message', {
         gameId: currentChatGameId,
         senderName: senderName,
         messageText: text
     });
 
-    console.log("5. ההודעה שוגרה לשרת!");
     input.value = '';
 }
 window.sendChatMessage = sendChatMessage;
+
+
 function handleChatEnter(e) {
     if (e.key === 'Enter') sendChatMessage();
 }
