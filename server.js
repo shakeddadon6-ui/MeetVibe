@@ -31,7 +31,7 @@ const sqlConfig = {
 async function initDB() {
     try {
         await sql.connect(sqlConfig);
-        console.log("✅ השרת מחובר בהצלחה למסד הנתונים MeetVibe (Socket.io Mode)!");
+        console.log("✅ השרת מחובר בהצלחה למסד הנתונים MeetVibe (Admin & Socket Mode)!");
     } catch (err) { console.error("DB Init Error:", err); }
 }
 initDB();
@@ -49,19 +49,24 @@ function authenticateToken(req, res, next) {
     });
 }
 
+// Middleware לבדיקת הרשאת מנהל (Admin)
+function requireAdmin(req, res, next) {
+    authenticateToken(req, res, () => {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ error: "גישה נדחתה. נדרשות הרשאות מנהל מערכת." });
+        }
+        next();
+    });
+}
+
 // ==========================================
 // Socket.io - ניהול תקשורת בזמן אמת
 // ==========================================
 io.on('connection', (socket) => {
-    console.log(`⚡ משתמש התחבר ל-Socket: ${socket.id}`);
-
-    // הצטרפות לחדר של משחק ספציפי
     socket.on('join_game_room', (gameId) => {
         socket.join(`game_${gameId}`);
-        console.log(`👤 משתמש הצטרף לחדר צ'אט: game_${gameId}`);
     });
 
-    // שליחת הודעה חדשה בזמן אמת
     socket.on('send_message', async (data) => {
         try {
             const { gameId, senderName, messageText } = data;
@@ -69,8 +74,6 @@ io.on('connection', (socket) => {
             await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'${senderName.replace(/'/g, "''")}', N'${messageText.replace(/'/g, "''")}')`);
             
             const timeNow = new Date().toTimeString().substring(0, 5);
-            
-            // שידור ההודעה לכל מי שנמצא באותו חדר מיד!
             io.to(`game_${gameId}`).emit('receive_message', {
                 SenderName: senderName,
                 MessageText: messageText,
@@ -80,14 +83,10 @@ io.on('connection', (socket) => {
             console.error("Socket chat error:", err);
         }
     });
-
-    socket.on('disconnect', () => {
-        console.log(`🔌 משתמש התנתק: ${socket.id}`);
-    });
 });
 
 // ==========================================
-// ראוטים רגילים (התחברות, הרשמה וכו')
+// ראוטים (הרשמה, התחברות וניהול)
 // ==========================================
 app.post('/api/register', async (req, res) => {
     const { fullName, phone, password, age, gender } = req.body;
@@ -99,7 +98,7 @@ app.post('/api/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
-        await sql.query(`INSERT INTO Players (FullName, Phone, Password, Age, Gender) VALUES (N'${fullName.replace(/'/g, "''")}', '${phone}', '${hashedPassword}', ${age || 18}, N'${gender || 'לא מוגדר'}')`);
+        await sql.query(`INSERT INTO Players (FullName, Phone, Password, Age, Gender, IsAdmin) VALUES (N'${fullName.replace(/'/g, "''")}', '${phone}', '${hashedPassword}', ${age || 18}, N'${gender || 'לא מוגדר'}', 0)`);
         res.status(201).json({ success: true, message: "נרשמת בהצלחה!" });
     } catch (err) { res.status(500).json({ error: "תקלה בהרשמה." }); }
 });
@@ -108,15 +107,25 @@ app.post('/api/login', async (req, res) => {
     const { phone, password } = req.body;
     try {
         await sql.connect(sqlConfig);
-        const checkUser = await sql.query(`SELECT PlayerID, FullName, Password, Age, Gender FROM Players WHERE Phone = '${phone}'`);
+        const checkUser = await sql.query(`SELECT PlayerID, FullName, Password, Age, Gender, ISNULL(IsAdmin, 0) AS IsAdmin FROM Players WHERE Phone = '${phone}'`);
         if (checkUser.recordset.length === 0) return res.status(404).json({ code: 'not_found', error: "המספר לא קיים במערכת." });
         
         const user = checkUser.recordset[0];
         const validPassword = await bcrypt.compare(password, user.Password);
         if (!validPassword) return res.status(401).json({ code: 'wrong_password', error: "סיסמה שגויה." });
         
-        const token = jwt.sign({ userId: user.PlayerID, phone: phone }, JWT_SECRET, { expiresIn: '7d' });
-        res.json({ success: true, token: token, userId: user.PlayerID, userName: user.FullName, userAge: user.Age, userGender: user.Gender });
+        // שמירת סטטוס המנהל בתוך הטוקן
+        const token = jwt.sign({ userId: user.PlayerID, phone: phone, isAdmin: user.IsAdmin === true || user.IsAdmin === 1 }, JWT_SECRET, { expiresIn: '7d' });
+        
+        res.json({ 
+            success: true, 
+            token: token, 
+            userId: user.PlayerID, 
+            userName: user.FullName, 
+            userAge: user.Age, 
+            userGender: user.Gender,
+            isAdmin: user.IsAdmin === true || user.IsAdmin === 1 
+        });
     } catch (err) { res.status(500).json({ error: "תקלה בהתחברות." }); }
 });
 
@@ -134,6 +143,7 @@ app.post('/api/reset-password', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה באיפוס." }); }
 });
 
+// ראוטים למשחקים (יצירה, צפייה, הצטרפות, מחיקה)
 app.post('/api/games', authenticateToken, async (req, res) => {
     const creatorPlayerId = req.user.userId;
     const { missingPlayers, startTime, minAge, maxAge, city, prefGender, eventType } = req.body;
@@ -209,7 +219,6 @@ app.put('/api/games/:id/join', authenticateToken, async (req, res) => {
         await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = '${missing === 0 ? 'Full' : 'Open'}' WHERE GameID = ${gameId}`);
         await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'🔔 ${joiningUserName} הצטרף/ה!')`);
 
-        // שידור הודעת מערכת בזמן אמת לכל מי שצופה בצ'אט
         io.to(`game_${gameId}`).emit('receive_message', {
             SenderName: 'מערכת',
             MessageText: `🔔 ${joiningUserName} הצטרף/ה!`,
@@ -252,7 +261,6 @@ app.get('/api/games/:id/chat', authenticateToken, async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
 
-// שימו לב: הודעות צ'אט רגילות מנוהלות כעת בצורה מושלמת דרך Socket.io, אך נשאר ראוט גיבוי HTTP במידת הצורך
 app.post('/api/games/:id/chat', authenticateToken, async (req, res) => {
     try {
         await sql.connect(sqlConfig);
@@ -268,5 +276,30 @@ app.post('/api/games/:id/chat', authenticateToken, async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
 
-// שימוש ב-server.listen במקום app.listen כדי לתמוך גם ב-Socket.io
-server.listen(PORT, () => { console.log(`Server is running with Socket.io on port ${PORT}`); });
+// ==========================================
+// ראוטים למנהל בלבד (Admin Dashboard APIs)
+// ==========================================
+
+// קבלת כל המשתמשים במערכת
+app.get('/api/admin/players', requireAdmin, async (req, res) => {
+    try {
+        await sql.connect(sqlConfig);
+        const result = await sql.query(`SELECT PlayerID, FullName, Phone, Age, Gender, ISNULL(IsAdmin, 0) AS IsAdmin FROM Players ORDER BY PlayerID DESC`);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: "תקלה בשליפת משתמשים" }); }
+});
+
+// מחיקת משתמש על ידי מנהל
+app.delete('/api/admin/players/:id', requireAdmin, async (req, res) => {
+    try {
+        const playerId = req.params.id;
+        await sql.connect(sqlConfig);
+        // מחיקת ההשתתפויות וההודעות שלו קודם למניעת שגיאות Foreign Key
+        await sql.query(`DELETE FROM GameParticipants WHERE PlayerID = ${playerId}`);
+        await sql.query(`DELETE FROM Games WHERE CreatorPlayerID = ${playerId}`);
+        await sql.query(`DELETE FROM Players WHERE PlayerID = ${playerId}`);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: "תקלה במחיקת משתמש" }); }
+});
+
+server.listen(PORT, () => { console.log(`Server is running with Admin Support on port ${PORT}`); });

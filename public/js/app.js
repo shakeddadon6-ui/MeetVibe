@@ -89,6 +89,25 @@ function showMainApp() {
     const savedUsername = localStorage.getItem('sportMatchUser');
     if (savedUsername) { document.getElementById('welcomeMessage').innerText = "אהלן " + savedUsername + "!"; }
 
+    // בדיקה האם המשתמש המחובר הוא מנהל והצגת כפתור ניהול בהתאם
+    const isAdmin = localStorage.getItem('sportMatchIsAdmin') === 'true';
+    let adminBtn = document.getElementById('adminPanelBtn');
+    
+    if (isAdmin) {
+        if (!adminBtn) {
+            const headerContainer = document.querySelector('.header-container');
+            adminBtn = document.createElement('button');
+            adminBtn.id = 'adminPanelBtn';
+            adminBtn.className = 'top-btn';
+            adminBtn.style.backgroundColor = '#e67e22';
+            adminBtn.innerText = '⚙️ פאנל ניהול';
+            adminBtn.onclick = openAdminPanel;
+            headerContainer.insertBefore(adminBtn, headerContainer.firstChild);
+        }
+    } else if (adminBtn) {
+        adminBtn.remove();
+    }
+
     const now = new Date(); 
     const dateInput = document.getElementById('gameDate');
     if (dateInput) dateInput.value = now.toISOString().split('T')[0];
@@ -379,3 +398,88 @@ async function checkBackgroundNotifications() {
     } catch (e) {}
 }
 setInterval(checkBackgroundNotifications, 1500);
+
+// ==========================================
+// פאנל ניהול (Admin Dashboard)
+// ==========================================
+
+async function openAdminPanel() {
+    let modal = document.getElementById('adminModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'adminModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="chat-modal" style="max-width: 600px; height: 85vh; background: var(--bg-color, white);">
+                <div class="chat-header" style="background: #d35400;">
+                    <span>⚙️ פאנל ניהול מערכת</span>
+                    <button class="chat-close-btn" onclick="closeAdminPanel()">&times;</button>
+                </div>
+                <div id="adminContent" style="padding: 20px; overflow-y: auto; flex: 1; text-align: right;">
+                    <p>טוען משתמשים...</p>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+    modal.style.display = 'flex';
+    loadAdminPlayers();
+}
+window.openAdminPanel = openAdminPanel;
+
+function closeAdminPanel() {
+    const modal = document.getElementById('adminModal');
+    if (modal) modal.style.display = 'none';
+}
+window.closeAdminPanel = closeAdminPanel;
+
+async function loadAdminPlayers() {
+    const container = document.getElementById('adminContent');
+    if (!container) return;
+    
+    try {
+        const res = await fetch('/api/admin/players', { headers: getAuthHeaders() });
+        if (!res.ok) {
+            container.innerHTML = `<p style="color:red; text-align:center;">אין לך הרשאה לצפות בפאנל זה.</p>`;
+            return;
+        }
+        const players = await res.json();
+        
+        let html = `<h3 style="margin-bottom: 15px; color: #2c3e50;">👥 רשומים במערכת (${players.length})</h3>`;
+        html += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
+        
+        players.forEach(p => {
+            html += `
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>${p.FullName}</strong> (${p.Phone})<br>
+                        <small style="color: #64748b;">גיל: ${p.Age} | מגדר: ${p.Gender} ${p.IsAdmin ? ' | ⭐ מנהל מערכת' : ''}</small>
+                    </div>
+                    ${!p.IsAdmin ? `<button onclick="deletePlayer(${p.PlayerID})" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">מחק משתמש</button>` : ''}
+                </div>`;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = `<p style="color:red; text-align:center;">שגיאה בטעינת הנתונים מהשרת.</p>`;
+    }
+}
+
+async function deletePlayer(playerId) {
+    if (!confirm("האם אתה בטוח שברצונך למחוק את המשתמש לצמיתות?")) return;
+    try {
+        const res = await fetch(`/api/admin/players/${playerId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            alert("המשתמש נמחק בהצלחה.");
+            loadAdminPlayers();
+            loadGames();
+        } else {
+            alert("תקלה במחיקת המשתמש.");
+        }
+    } catch (err) {
+        alert("שגיאת רשת.");
+    }
+}
+window.deletePlayer = deletePlayer;

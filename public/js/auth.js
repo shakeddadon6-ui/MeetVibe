@@ -1,5 +1,5 @@
 // ==========================================
-// קובץ auth.js - ניהול משתמשים והתחברות (דו-לשוני + אבטחת JWT)
+// קובץ auth.js - ניהול משתמשים והתחברות (כולל Admin)
 // ==========================================
 
 function switchAuthTab(tab) {
@@ -67,12 +67,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         const data = await res.json();
         
         if(res.ok) { 
-            // שמירת הטוקן ופרטי המשתמש בהתחברות מוצלחת
-            localStorage.setItem('sportMatchToken', data.token); // <--- זה הטוקן שנוסף!
+            // שמירת הטוקן, פרטי המשתמש וסטטוס המנהל בהתחברות מוצלחת
+            localStorage.setItem('sportMatchToken', data.token);
             localStorage.setItem('sportMatchUserId', data.userId); 
             localStorage.setItem('sportMatchUser', data.userName); 
             localStorage.setItem('sportMatchUserAge', data.userAge);
             localStorage.setItem('sportMatchUserGender', data.userGender);
+            localStorage.setItem('sportMatchIsAdmin', data.isAdmin ? 'true' : 'false'); // שמירת סטטוס מנהל
             
             myUserId = data.userId; 
             myUsername = data.userName; 
@@ -110,11 +111,12 @@ document.getElementById('forgotForm').addEventListener('submit', async (e) => {
 });
 
 function logout() { 
-    localStorage.removeItem('sportMatchToken'); // <--- מחיקת הטוקן ביציאה מהמערכת
+    localStorage.removeItem('sportMatchToken');
     localStorage.removeItem('sportMatchUserId'); 
     localStorage.removeItem('sportMatchUser'); 
     localStorage.removeItem('sportMatchUserAge'); 
     localStorage.removeItem('sportMatchUserGender'); 
+    localStorage.removeItem('sportMatchIsAdmin'); // מחיקת סטטוס מנהל ביציאה
     location.reload(); 
 }
 window.logout = logout;
