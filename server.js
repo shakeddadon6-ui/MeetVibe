@@ -109,6 +109,63 @@ io.on('connection', (socket) => {
 });
 
 // ==========================================
+// מערכת חסימות (Block System)
+// ==========================================
+app.post('/api/users/block', authenticateToken, async (req, res) => {
+    try {
+        const blockerId = req.user.userId;
+        const { blockedId } = req.body;
+        
+        if (blockerId === blockedId) return res.status(400).json({ error: "אינך יכול לחסום את עצמך." });
+
+        await sql.connect(sqlConfig);
+        
+        // בדיקה אם המשתמש הוא אדמין (לא ניתן לחסום אדמין)
+        const checkAdmin = await sql.query(`SELECT ISNULL(IsAdmin, 0) as IsAdmin FROM Players WHERE PlayerID = ${blockedId}`);
+        if (checkAdmin.recordset.length > 0 && checkAdmin.recordset[0].IsAdmin) {
+            return res.status(403).json({ error: "לא ניתן לחסום מנהל מערכת." });
+        }
+
+        // הכנסה לטבלת חסימות
+        await sql.query(`
+            IF NOT EXISTS (SELECT 1 FROM BlockedUsers WHERE BlockerID = ${blockerId} AND BlockedID = ${blockedId})
+            BEGIN
+                INSERT INTO BlockedUsers (BlockerID, BlockedID) VALUES (${blockerId}, ${blockedId})
+            END
+        `);
+        
+        // מחיקת המשתמש החסום ממשחקים שהחוסם יצר, ולהפך
+        await sql.query(`DELETE FROM GameParticipants WHERE PlayerID = ${blockedId} AND GameID IN (SELECT GameID FROM Games WHERE CreatorPlayerID = ${blockerId})`);
+        await sql.query(`DELETE FROM GameParticipants WHERE PlayerID = ${blockerId} AND GameID IN (SELECT GameID FROM Games WHERE CreatorPlayerID = ${blockedId})`);
+
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: "תקלה בביצוע החסימה." }); }
+});
+
+app.post('/api/users/unblock', authenticateToken, async (req, res) => {
+    try {
+        const blockerId = req.user.userId;
+        const { blockedId } = req.body;
+        await sql.connect(sqlConfig);
+        await sql.query(`DELETE FROM BlockedUsers WHERE BlockerID = ${blockerId} AND BlockedID = ${blockedId}`);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: "תקלה בשחרור החסימה." }); }
+});
+
+app.get('/api/users/blocked', authenticateToken, async (req, res) => {
+    try {
+        await sql.connect(sqlConfig);
+        const result = await sql.query(`
+            SELECT b.BlockedID, p.FullName 
+            FROM BlockedUsers b
+            JOIN Players p ON b.BlockedID = p.PlayerID
+            WHERE b.BlockerID = ${req.user.userId}
+        `);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: "תקלה בשליפת חסומים." }); }
+});
+
+// ==========================================
 // ראוטים (הרשמה, התחברות וניהול)
 // ==========================================
 app.post('/api/register', async (req, res) => {
@@ -181,6 +238,16 @@ app.post('/api/games', authenticateToken, async (req, res) => {
 
 app.get('/api/games', async (req, res) => {
     try {
+        let currentUserId = 0;
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                currentUserId = decoded.userId;
+            } catch(e) {}
+        }
+
         await sql.connect(sqlConfig);
         const result = await sql.query(`
             SELECT Games.GameID, Games.CreatorPlayerID, Players.FullName AS CreatorName, 
@@ -190,7 +257,10 @@ app.get('/api/games', async (req, res) => {
                    ISNULL((SELECT CAST(PlayerID AS VARCHAR) + ',' FROM GameParticipants WHERE GameID = Games.GameID FOR XML PATH('')), '') AS JoinedPlayersStr
             FROM Games 
             JOIN Players ON Games.CreatorPlayerID = Players.PlayerID 
-            WHERE Games.GameStatus = 'Open' AND Games.StartTime >= DATEADD(hour, -2, GETDATE())
+            WHERE Games.GameStatus = 'Open' 
+              AND Games.StartTime >= DATEADD(hour, -2, GETDATE())
+              AND Games.CreatorPlayerID NOT IN (SELECT BlockedID FROM BlockedUsers WHERE BlockerID = ${currentUserId})
+              AND Games.CreatorPlayerID NOT IN (SELECT BlockerID FROM BlockedUsers WHERE BlockedID = ${currentUserId})
             ORDER BY Games.StartTime ASC;
         `);
         res.json(result.recordset);
