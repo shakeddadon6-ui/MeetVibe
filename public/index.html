@@ -3,64 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SportMatch - מפה ומפגשים</title>
+    <title>SportMatch - מפגשים וספורט</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#007bff">
+    <meta name="theme-color" content="#8e44ad">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
     <link rel="stylesheet" href="css/style.css">
     
     <style> 
-        .lang-btn { background: #27ae60; color: white; margin-right: 5px; margin-left: 5px;} 
-        
-        .category-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 15px;
-            margin-top: 30px;
-            padding: 10px;
-        }
-        .category-card {
-            color: white;
-            padding: 30px 10px;
-            border-radius: 15px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            font-size: 1.2em;
-            font-weight: bold;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .category-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-        }
-        .category-card .icon {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-        
-        .back-btn {
-            background-color: #34495e;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin: 10px;
-            width: calc(100% - 20px);
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        .back-btn:hover { background-color: #2c3e50; }
-
         .social-filter-bar {
             display: flex;
             gap: 10px;
@@ -83,7 +33,6 @@
 </head>
 <body>
 
-    <!-- רשימת כל ערי ישראל לבחירה והשלמה מהירה -->
     <datalist id="israelCities">
         <option value="אום אל-פחם"><option value="אופקים"><option value="אור יהודה"><option value="אור עקיבא"><option value="אילת">
         <option value="אלעד"><option value="אריאל"><option value="אשדוד"><option value="אשקלון"><option value="באקה אל-גרביה">
@@ -105,23 +54,23 @@
 
     <div id="authScreen" class="auth-overlay">
         <div class="auth-container">
-            <h1 data-i18n="appTitle">🗺️ SportMatch</h1>
+            <h1>🤝 SportMatch</h1>
             <div class="auth-tabs" id="authTabs">
-                <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')" data-i18n="loginTab">התחברות</button>
-                <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')" data-i18n="registerTab">הרשמה</button>
+                <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')">התחברות</button>
+                <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')">הרשמה</button>
             </div>
             
             <form id="loginForm" class="auth-form">
-                <input type="tel" id="loginPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
-                <input type="password" id="loginPassword" placeholder="סיסמה" data-i18n-placeholder="passwordPlaceholder" required>
-                <button type="submit" data-i18n="loginBtn">היכנס למערכת</button>
-                <a class="forgot-pass-link" onclick="switchAuthTab('forgot')" data-i18n="forgotPassword">שכחתי סיסמה 🤔</a>
+                <input type="tel" id="loginPhone" placeholder="מספר טלפון" required>
+                <input type="password" id="loginPassword" placeholder="סיסמה" required>
+                <button type="submit">היכנס למערכת</button>
+                <a class="forgot-pass-link" onclick="switchAuthTab('forgot')">שכחתי סיסמה 🤔</a>
             </form>
             
             <form id="registerForm" class="auth-form" style="display: none;">
-                <input type="text" id="regName" placeholder="שם מלא" data-i18n-placeholder="namePlaceholder" required>
-                <input type="tel" id="regPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
-                <input type="number" id="regAge" placeholder="גיל" data-i18n-placeholder="agePlaceholder" min="10" max="99" required>
+                <input type="text" id="regName" placeholder="שם מלא" required>
+                <input type="tel" id="regPhone" placeholder="מספר טלפון" required>
+                <input type="number" id="regAge" placeholder="גיל" min="10" max="99" required>
                 
                 <select id="regGender" required style="margin-bottom: 10px; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; font-size: 1em;">
                     <option value="" disabled selected>בחר מגדר</option>
@@ -130,109 +79,49 @@
                     <option value="אחר">אחר</option>
                 </select>
                 
-                <input type="password" id="regPassword" placeholder="בחר סיסמה" data-i18n-placeholder="choosePasswordPlaceholder" required>
-                <button type="submit" data-i18n="registerBtn">צור משתמש חדש</button>
+                <input type="password" id="regPassword" placeholder="בחר סיסמה" required>
+                <button type="submit">צור משתמש חדש</button>
             </form>
 
             <form id="forgotForm" class="auth-form" style="display: none;">
-                <h3 style="margin-top: 0; color: #e74c3c;" data-i18n="resetTitle">איפוס סיסמה</h3>
-                <input type="tel" id="forgotPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
-                <input type="password" id="forgotNewPassword" placeholder="סיסמה חדשה" data-i18n-placeholder="newPasswordPlaceholder" required>
-                <button type="submit" style="background: #e74c3c;" data-i18n="updatePasswordBtn">עדכן סיסמה</button>
-                <a class="forgot-pass-link" onclick="switchAuthTab('login')" data-i18n="backToLogin">חזור להתחברות</a>
+                <h3 style="margin-top: 0; color: #e74c3c;">איפוס סיסמה</h3>
+                <input type="tel" id="forgotPhone" placeholder="מספר טלפון" required>
+                <input type="password" id="forgotNewPassword" placeholder="סיסמה חדשה" required>
+                <button type="submit" style="background: #e74c3c;">עדכן סיסמה</button>
+                <a class="forgot-pass-link" onclick="switchAuthTab('login')">חזור להתחברות</a>
             </form>
         </div>
     </div>
 
-    <div id="homeScreen" style="display: none; padding: 20px; text-align: center; max-width: 600px; margin: 0 auto; padding-top: 40px;">
-        <h2 id="welcomeMessage" style="font-size: 2.2em; color: #2c3e50; margin-bottom: 5px;">ברוך הבא!</h2>
-        <h3 style="color: #7f8c8d; margin-bottom: 25px; font-weight: normal;">מה בא לך לעשות היום?</h3>
-        
-        <div class="category-grid">
-            <div class="category-card" onclick="openCategory('Basketball')" style="background: linear-gradient(135deg, #e67e22, #d35400);">
-                <div class="icon">🏀</div>
-                <div>כדורסל</div>
-            </div>
-            <div class="category-card" onclick="openCategory('Football')" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
-                <div class="icon">⚽</div>
-                <div>כדורגל</div>
-            </div>
-            <div class="category-card" onclick="openSocialApp()" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); grid-column: span 2;">
-                <div class="icon">🥂</div>
-                <div>מפגשים חברתיים</div>
-            </div>
-        </div>
-        
-        <button onclick="logout()" style="margin-top: 40px; background: #e74c3c; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.1em;">🚪 התנתק</button>
-    </div>
-
-    <!-- אפליקציית המפה (עבור ספורט) -->
+    <!-- האפליקציה המרכזית (ללא מפה, הכל מפגשים) -->
     <div id="mainApp" style="display: none;">
-        <div class="header-container">
-            <button id="darkModeToggle" class="top-btn" onclick="toggleDarkMode()" data-i18n="nightMode">🌙 לילה</button>
-             <button id="langToggleBtn" class="top-btn lang-btn" onclick="toggleLanguage()">English (EN)</button>
-            <h1 class="main-title" data-i18n="appTitle">SportMatch</h1>
-            <button class="top-btn logout-btn" onclick="logout()" data-i18n="logout">🚪 התנתק</button>
-        </div>
-
-        <button class="back-btn" onclick="backToHome()">🔙 חזור לתפריט הראשי</button>
-        
-        <div class="filter-container">
-            <button id="btnAll" class="sport-btn active" onclick="setSportFilter('all')" data-i18n="filterAll">🌍 הכל</button>
-            <button id="btnBasketball" class="sport-btn" onclick="setSportFilter('Basketball')" data-i18n="filterBasketball">🏀 כדורסל</button>
-            <button id="btnFootball" class="sport-btn" onclick="setSportFilter('Football')" data-i18n="filterFootball">⚽ כדורגל</button>
-            <button id="btnMyGames" class="sport-btn" onclick="setSportFilter('my_games')" data-i18n="filterMyGames">👤 הפעילויות שלי</button>
-        </div>
-
-        <div id="map"></div>
-        
-        <div class="form-container">
-            <h3 data-i18n="formTitle">➕ פתח מפגש ספורט</h3>
-            <div id="newGameForm">
-                <input type="text" id="searchBox" class="app-input" placeholder="🔍 הקלד שם מיקום לחיפוש מהיר..." data-i18n-placeholder="searchPlaceholder">
-                <select id="courtId" class="app-input"><option value="" data-i18n="searchingLocation">מחפש מיקום... 📍</option></select>
-                <div id="selectedAddressDisplay"></div>
-                
-                <input type="number" id="missingPlayers" class="app-input" placeholder="כמה אנשים חסרים?" data-i18n-placeholder="missingPlayersPlaceholder" min="1" max="50">
-                
-                <div style="display: flex; gap: 10px; width: 90%; margin: 10px auto;">
-                    <input type="number" id="minAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מינימלי" data-i18n-placeholder="minAgePlaceholder" min="10" max="99">
-                    <input type="number" id="maxAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מקסימלי" data-i18n-placeholder="maxAgePlaceholder" min="10" max="99">
-                </div>
-                
-                <div class="time-toggle-container">
-                    <button type="button" id="btnTimeNow" class="time-btn active" onclick="setTimeMode('now')" data-i18n="btnNow">⚡ עכשיו</button>
-                    <button type="button" id="btnTimeFuture" class="time-btn" onclick="setTimeMode('future')" data-i18n="btnFuture">🕰️ עתידי</button>
-                </div>
-                <div class="time-picker-wrapper" id="timePickerWrapper" style="display: none;">
-                    <select id="gameHour"></select><span class="time-picker-separator">:</span><select id="gameMinute"></select>
-                </div>
-                <button type="button" class="submit-btn" onclick="createNewGame(false)" data-i18n="submitGameBtn">צור משחק!</button>
-            </div>
-        </div>
-
-        <h2 style="color: #2c3e50;" data-i18n="activeGamesTitle">🔥 מפגשים שקורים עכשיו:</h2>
-        <div id="gamesList" class="games-container"></div>
-    </div>
-
-    <!-- אפליקציה חדשה: מפגשים חברתיים -->
-    <div id="socialApp" style="display: none;">
         <div class="header-container" style="background: #8e44ad;">
-            <button class="top-btn" style="visibility: hidden;">🌙</button>
-            <h1 class="main-title" style="color: white;">מפגשים חברתיים</h1>
+            <button class="top-btn" onclick="toggleDarkMode()">🌙 לילה</button>
+            <h1 class="main-title" style="color: white;">SportMatch</h1>
             <button class="top-btn logout-btn" onclick="logout()">🚪 התנתק</button>
         </div>
 
-        <button class="back-btn" onclick="backToHome()">🔙 חזור לתפריט הראשי</button>
+        <h3 id="welcomeMessage" style="text-align: center; color: #8e44ad; margin-top: 15px;"></h3>
         
         <div class="form-container">
-            <h3>🥂 יצירת מפגש חברתי חדש</h3>
-            <div id="newSocialGameForm">
-                <!-- בחירת עיר עם השלמה אוטומטית מכל ערי ישראל -->
-                <input type="text" id="socialCity" list="israelCities" class="app-input" placeholder="🏙️ הקלד או בחר עיר ברשימה..." required>
+            <h3>🥂 יצירת מפגש חדש</h3>
+            <div id="newGameForm">
+                <input type="text" id="gameCity" list="israelCities" class="app-input" placeholder="🏙️ הקלד או בחר עיר ברשימה..." required>
                 
-                <select id="socialEventType" class="app-input" required>
-                    <option value="" disabled selected>-- בחר סוג בילוי --</option>
+                <select id="gameEventType" class="app-input" required>
+                    <option value="" disabled selected>-- בחר סוג בילוי / ספורט --</option>
+                    <optgroup label="ספורט ומשחקי כדור">
+                        <option value="כדורגל">⚽ כדורגל</option>
+                        <option value="כדורסל">🏀 כדורסל</option>
+                        <option value="טניס">🎾 טניס</option>
+                        <option value="כדורעף">🏐 כדורעף</option>
+                        <option value="פינג פונג">🏓 פינג פונג</option>
+                        <option value="אימון כושר">🏋️ אימון כושר בפארק</option>
+                        <option value="יוגה/פילאטיס">🧘‍♀️ יוגה / פילאטיס</option>
+                        <option value="הליכה">🚶‍♂️ הליכה</option>
+                        <option value="ריצה">🏃‍♀️ ריצה משותפת</option>
+                        <option value="רכיבה על אופניים">🚴‍♂️ רכיבה על אופניים</option>
+                    </optgroup>
                     <optgroup label="בילוי ופנאי">
                         <option value="יציאה לבר/פאב">🍻 יציאה לבר/פאב</option>
                         <option value="מסעדה">🍽️ מסעדה / אוכל</option>
@@ -241,84 +130,72 @@
                         <option value="סרט/קולנוע">🍿 סרט בקולנוע</option>
                         <option value="הופעת חיה">🎸 הופעה חיה / מוזיקה</option>
                         <option value="סטנדאפ">🎭 מופע סטנדאפ</option>
-                    </optgroup>
-                    <optgroup label="ספורט ואקטיבי">
                         <option value="צפייה במשחק">📺 צפייה במשחק ספורט</option>
-                        <option value="הליכה">🚶‍♂️ הליכה</option>
-                        <option value="ריצה">🏃‍♀️ ריצה משותפת</option>
-                        <option value="רכיבה על אופניים">🚴‍♂️ רכיבה על אופניים</option>
-                        <option value="יוגה/פילאטיס">🧘‍♀️ יוגה / פילאטיס</option>
-                        <option value="טיול בטבע">🏕️ טיול בטבע</option>
-                        <option value="אימון כושר">🏋️ אימון כושר בפארק</option>
                     </optgroup>
                     <optgroup label="תחביבים והעשרה">
                         <option value="משחקי קופסה">🎲 משחקי קופסה</option>
                         <option value="גיימינג">🎮 גיימינג / קונסולות</option>
+                        <option value="טיול בטבע">🏕️ טיול בטבע</option>
                         <option value="סדנת בישול">🍳 סדנת בישול / אפייה</option>
                         <option value="קריאה/ספרים">📖 מפגש קריאה / ספרים</option>
-                        <option value="צילום">📸 סיור צילום</option>
-                        <option value="אמנות/ציור">🎨 יצירה / ציור</option>
                     </optgroup>
                     <option value="אחר">✨ משהו אחר</option>
                 </select>
 
-                <select id="socialPrefGender" class="app-input">
+                <select id="gamePrefGender" class="app-input">
                     <option value="לא משנה" selected>👥 מגדר מועדף: לא משנה</option>
                     <option value="זכר">♂️ רק גברים</option>
                     <option value="נקבה">♀️ רק נשים</option>
                 </select>
                 
-                <input type="number" id="socialMissingPlayers" class="app-input" placeholder="כמה אנשים חסרים?" min="1" max="50" required>
+                <input type="number" id="gameMissingPlayers" class="app-input" placeholder="כמה אנשים חסרים?" min="1" max="50" required>
                 
                 <div style="display: flex; gap: 10px; width: 90%; margin: 10px auto;">
-                    <input type="number" id="socialMinAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מינימלי" min="10" max="99">
-                    <input type="number" id="socialMaxAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מקסימלי" min="10" max="99">
+                    <input type="number" id="gameMinAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מינימלי" min="10" max="99">
+                    <input type="number" id="gameMaxAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מקסימלי" min="10" max="99">
                 </div>
                 
-                <input type="date" id="socialGameDate" class="app-input" style="width: 90%; margin: 10px auto;" required>
+                <input type="date" id="gameDate" class="app-input" style="width: 90%; margin: 10px auto;" required>
 
                 <div class="time-picker-wrapper" style="display: flex; margin-bottom: 15px; justify-content: center;">
                     <span style="align-self: center; margin-left: 10px;">שעה:</span>
-                    <select id="socialGameHour"></select><span class="time-picker-separator">:</span><select id="socialGameMinute"></select>
+                    <select id="gameHour"></select><span class="time-picker-separator">:</span><select id="gameMinute"></select>
                 </div>
                 
-                <button type="button" class="submit-btn" style="background: #8e44ad;" onclick="createNewGame(true)">צור מפגש חברתי!</button>
+                <button type="button" class="submit-btn" style="background: #8e44ad;" onclick="createNewGame()">צור מפגש!</button>
             </div>
         </div>
 
-        <h2 style="color: #2c3e50; padding-right: 15px; margin-bottom: 5px;">🔥 מפגשים חברתיים פתוחים:</h2>
+        <h2 style="color: #2c3e50; padding-right: 15px; margin-bottom: 5px;">🔥 מפגשים פתוחים:</h2>
         
-        <!-- סרגל סינון למפגשים חברתיים -->
         <div class="social-filter-bar">
-            <input type="text" id="filterSocialCity" list="israelCities" placeholder="🔍 סנן לפי עיר..." oninput="filterSocialList()">
-            <select id="filterSocialType" onchange="filterSocialList()">
-                <option value="all">🎭 כל סוגי הבילוי</option>
+            <input type="text" id="filterCity" list="israelCities" placeholder="🔍 סנן לפי עיר..." oninput="filterGamesList()">
+            <select id="filterType" onchange="filterGamesList()">
+                <option value="all">🎭 הכל</option>
+                <option value="כדורגל">⚽ כדורגל</option>
+                <option value="כדורסל">🏀 כדורסל</option>
+                <option value="טניס">🎾 טניס</option>
+                <option value="כדורעף">🏐 כדורעף</option>
                 <option value="יציאה לבר/פאב">🍻 ברים ופאבים</option>
-                <option value="מסעדה">🍽️ מסעדות / אוכל</option>
-                <option value="בית קפה">☕ בית קפה</option>
+                <option value="מסעדה">🍽️ מסעדות</option>
                 <option value="ים">🏖️ ים</option>
-                <option value="צפייה במשחק">📺 צפייה במשחקים</option>
-                <option value="הליכה">🚶‍♂️ הליכה</option>
-                <option value="ריצה">🏃‍♀️ ריצה</option>
-                <option value="משחקי קופסה">🎲 משחקי קופסה</option>
-                <option value="גיימינג">🎮 גיימינג</option>
-                <option value="טיול בטבע">🏕️ טיול בטבע</option>
+                <option value="my_games">👤 הפעילויות שלי</option>
             </select>
         </div>
 
-        <div id="socialGamesList" class="games-container"></div>
+        <div id="gamesList" class="games-container"></div>
     </div>
 
-
+    <!-- מודלים לצ'אט והתראות נשארו ללא שינוי -->
     <div id="chatModal" class="modal-overlay">
         <div class="chat-modal">
             <div class="chat-header">
-                <span id="chatTitle" data-i18n="chatTitle">💬 צ'אט</span>
+                <span id="chatTitle">💬 צ'אט</span>
                 <button onclick="closeChat()" style="background:none; border:none; color:white; font-size:1.5em; cursor:pointer;">&times;</button>
             </div>
             <div id="chatMessages" class="chat-messages"></div>
             <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="הקלד הודעה..." data-i18n-placeholder="chatPlaceholder" onkeypress="handleChatEnter(event)">
+                <input type="text" id="chatInput" placeholder="הקלד הודעה..." onkeypress="handleChatEnter(event)">
                 <button onclick="sendChatMessage()">➤</button>
             </div>
         </div>
@@ -326,18 +203,18 @@
     
     <div id="whatsappModal" class="modal-overlay">
         <div class="modal-content">
-            <h2 style="margin-top: 0; color: #333;" data-i18n="gameCreatedTitle">🎉 המפגש נפתח!</h2>
-            <button id="waShareBtn" class="wa-btn" data-i18n="whatsappBtn">💬 שלח בוואטסאפ</button>
-            <button onclick="closeModal()" class="close-btn" style="background:none; border:none; color:gray; text-decoration:underline; font-size: 1.1em; cursor:pointer; margin-top:10px;" data-i18n="closeBtn">סגור</button>
+            <h2 style="margin-top: 0; color: #333;">🎉 המפגש נפתח!</h2>
+            <button id="waShareBtn" class="wa-btn">💬 שלח בוואטסאפ</button>
+            <button onclick="closeModal()" class="close-btn" style="background:none; border:none; color:gray; text-decoration:underline; font-size: 1.1em; cursor:pointer; margin-top:10px;">סגור</button>
         </div>
     </div>
 
     <div id="toastNotification">התראה חדשה!</div>
 
-    <script src="js/lang.js?v=7.2"></script>
-    <script src="js/app.js?v=7.2"></script>
-    <script src="js/auth.js?v=7.2"></script>
-    <script src="js/chat.js?v=7.2"></script>
+    <script src="js/lang.js?v=8.0"></script>
+    <script src="js/app.js?v=8.0"></script>
+    <script src="js/auth.js?v=8.0"></script>
+    <script src="js/chat.js?v=8.0"></script>
 
 </body>
 </html>
