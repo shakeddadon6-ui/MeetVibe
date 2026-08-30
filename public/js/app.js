@@ -176,3 +176,63 @@ async function checkBackgroundNotifications() {
     } catch (e) {}
 }
 setInterval(checkBackgroundNotifications, 1500);
+
+// ==========================================
+// ניהול רשימת חסומים (Blocked Users Management)
+// ==========================================
+async function openBlockedUsers() {
+    const modal = document.getElementById('blockedUsersModal');
+    if (modal) modal.style.display = 'flex';
+    
+    const container = document.getElementById('blockedUsersList');
+    if (!container) return;
+    
+    container.innerHTML = '<p style="text-align:center; color:#7f8c8d;">טוען רשימת חסומים...</p>';
+    
+    try {
+        const res = await fetch('/api/users/blocked', { headers: getAuthHeaders() });
+        if (!res.ok) {
+            container.innerHTML = '<p style="text-align:center; color:red;">שגיאה בטעינת הנתונים.</p>';
+            return;
+        }
+
+        const users = await res.json();
+        if (!users || users.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding:10px;">אין לך משתמשים חסומים.</p>';
+            return;
+        }
+
+        container.innerHTML = users.map(u => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #e2e8f0;">
+                <span style="font-weight:bold; color:var(--text-color, #333);">${u.FullName}</span>
+                <button onclick="unblockUser(${u.BlockedID})" style="background:#27ae60; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">שחרר חסימה</button>
+            </div>
+        `).join('');
+    } catch(err) { 
+        container.innerHTML = '<p style="text-align:center; color:red;">שגיאת רשת בטעינת חסומים.</p>'; 
+    }
+}
+window.openBlockedUsers = openBlockedUsers;
+
+async function unblockUser(userId) {
+    if (!confirm("האם אתה בטוח שברצונך לשחרר את חסימת המשתמש?")) return;
+    try {
+        const res = await fetch('/api/users/unblock', { 
+            method: 'POST', 
+            headers: getAuthHeaders(), 
+            body: JSON.stringify({ blockedId: userId }) 
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            alert("החסימה שוחררה בהצלחה.");
+            openBlockedUsers(); // רענון הרשימה הקופצת
+            if (typeof loadGames === 'function') loadGames(); // רענון המפגשים הראשיים
+        } else {
+            alert(data.error || "שגיאה בשחרור החסימה.");
+        }
+    } catch(err) { 
+        alert("שגיאת רשת."); 
+    }
+}
+window.unblockUser = unblockUser;
