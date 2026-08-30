@@ -90,6 +90,12 @@ function createGameCardHtml(game, diffMins, formattedDate, timeString) {
         </div>`;
     }
 
+    // כפתור דיווח שיוצג רק למי שאינו יוצר המפגש
+    let reportBtn = '';
+    if (!isCreator && myUserId) {
+        reportBtn = `<button onclick="openReportModal(${game.CreatorPlayerID}, '${game.CreatorName.replace(/'/g, "\\'")}')" style="background: transparent; border: none; color: #e74c3c; cursor: pointer; font-size: 0.85em; margin-top: 10px; text-decoration: underline; display: block; width: 100%;">🚨 דווח על ${game.CreatorName}</button>`;
+    }
+
     const chatBtn = `<button class="chat-btn" onclick="openChat(${game.GameID}, '${chatName}')">💬 צ'אט לקביעת מיקום</button>`;
     const ageHtml = `<div class="detail" style="color: #8e44ad; font-weight: bold; font-size: 0.95em; margin-top: 5px;">🎯 גילאים: ${game.MinAge} - ${game.MaxAge} | מגדר: ${game.PrefGender}</div>`;
     
@@ -105,7 +111,8 @@ function createGameCardHtml(game, diffMins, formattedDate, timeString) {
             ${ageHtml}
             <div class="badge">מחפשים עוד ${game.MissingPlayers} חבר'ה</div>
             <div class="btn-group">${joinControlsHtml} ${chatBtn}</div>
-            ${creatorControlsHtml}`;
+            ${creatorControlsHtml}
+            ${reportBtn}`;
 }
 
 async function joinGame(gameId, courtName) {
@@ -220,3 +227,56 @@ window.createNewGame = createNewGame;
 
 function closeModal() { document.getElementById('whatsappModal').style.display = 'none'; }
 window.closeModal = closeModal;
+
+// ==========================================
+// מנגנון דיווח על משתמשים
+// ==========================================
+let currentReportUserId = null;
+
+function openReportModal(userId, userName) {
+    currentReportUserId = userId;
+    document.getElementById('reportTargetName').innerText = `מדווח על: ${userName}`;
+    document.getElementById('reportReason').value = '';
+    document.getElementById('reportModal').style.display = 'flex';
+}
+window.openReportModal = openReportModal;
+
+function closeReportModal() {
+    document.getElementById('reportModal').style.display = 'none';
+    currentReportUserId = null;
+}
+window.closeReportModal = closeReportModal;
+
+async function submitReport() {
+    const reason = document.getElementById('reportReason').value.trim();
+    if (!reason || !currentReportUserId) {
+        alert('❌ חובה לציין סיבה לדיווח.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/reports', {
+            method: 'POST',
+            headers: window.getAuthHeaders ? window.getAuthHeaders() : {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('sportMatchToken')
+            },
+            body: JSON.stringify({
+                reportedUserId: currentReportUserId,
+                reason: reason
+            })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            alert('✅ הדיווח נשלח בהצלחה למנהל המערכת.');
+            closeReportModal();
+        } else {
+            alert('❌ שגיאה: ' + (data.error || 'תקלה בשליחת דיווח'));
+        }
+    } catch (err) {
+        console.error(err);
+        alert('❌ תקלה בשליחת הדיווח.');
+    }
+}
+window.submitReport = submitReport;
