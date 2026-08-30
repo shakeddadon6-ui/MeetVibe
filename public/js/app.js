@@ -30,7 +30,7 @@ window.onload = function() {
 
 async function loadIsraelCities() {
     try {
-        const response = await fetch('https://data.gov.il/api/3/action/datastore_search?resource_id=5c78e9fa-c2e2-4771-93ff-7f400cfdc2f6&limit=32000');
+        const response = await fetch('https://data.gov.il/api/3/action/datastore_search?resource_id=b7cf8f14-64a2-4b33-8d4b-edb286fdbd37&limit=1500');
         const data = await response.json();
         
         if (data.success && data.result.records) {
@@ -40,6 +40,7 @@ async function loadIsraelCities() {
             
             const citiesSet = new Set();
             data.result.records.forEach(record => {
+                // בדיקת כל השמות האפשריים במאגר הממשלתי לשיום יישוב
                 let cityName = record.שם_ישוב || record.שם_יישוב || record.city_name || record.שם_יישוב_לועזי;
                 if (cityName) {
                     cityName = cityName.trim();
@@ -49,6 +50,7 @@ async function loadIsraelCities() {
                 }
             });
             
+            // מיון אלפבתי עברי מדויק
             const sortedCities = Array.from(citiesSet).sort((a, b) => a.localeCompare(b, 'he'));
             
             sortedCities.forEach(city => {
