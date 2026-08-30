@@ -1,11 +1,12 @@
 // ==========================================
-// קובץ app.js - מנגנון הליבה (מפגשים ללא מפה + מאגר ערים ממשלתי)
+// קובץ app.js - מנגנון הליבה (מפגשים ללא מפה + מאגר ערים ממשלתי חכם)
 // ==========================================
 
 let myUserId = localStorage.getItem('sportMatchUserId');
 let myUsername = localStorage.getItem('sportMatchUser');
 let allGames = [];
 let myHistoryGames = [];
+let globalCities = []; // מערך לשמירת נתוני הערים מהמאגר הממשלתי
 
 window.onload = function() {
     if (myUserId && myUsername) { showMainApp(); } 
@@ -15,7 +16,7 @@ window.onload = function() {
     }
     
     // טעינה אוטומטית של כל הערים והיישובים בישראל מהמאגר הממשלתי
-    loadIsraelCities();
+    fetchIsraelCities();
     
     // מילוי שעות ודקות
     const hourSelect = document.getElementById('gameHour');
@@ -28,41 +29,56 @@ window.onload = function() {
     }
 };
 
-async function loadIsraelCities() {
+// פונקציה למשיכת נתונים ממאגר הערים הממשלתי ושמירתם גם באנגלית
+async function fetchIsraelCities() {
     try {
-        const response = await fetch('https://data.gov.il/api/3/action/datastore_search?resource_id=b7cf8f14-64a2-4b33-8d4b-edb286fdbd37&limit=1500');
+        const response = await fetch('https://data.gov.il/api/3/action/datastore_search?resource_id=5c78e9fa-c2e2-4771-93ff-7f400a12f7ba&limit=1500');
         const data = await response.json();
         
-        if (data.success && data.result.records) {
-            const datalist = document.getElementById('israelCities');
-            if (!datalist) return;
-            datalist.innerHTML = '';
+        if (data && data.result && data.result.records) {
+            globalCities = data.result.records
+                .map(record => {
+                    let englishName = (record['שם_ישוב_לועזי'] || '').trim().toLowerCase();
+                    englishName = englishName.replace(/\b\w/g, char => char.toUpperCase());
+                    
+                    return {
+                        he: record['שם_ישוב'].trim(),
+                        en: englishName
+                    };
+                })
+                .filter(city => city.he.length > 0 && city.he !== 'לא רשום');
             
-            const citiesSet = new Set();
-            data.result.records.forEach(record => {
-                // בדיקת כל השמות האפשריים במאגר הממשלתי לשיום יישוב
-                let cityName = record.שם_ישוב || record.שם_יישוב || record.city_name || record.שם_יישוב_לועזי;
-                if (cityName) {
-                    cityName = cityName.trim();
-                    if (cityName.length > 0) {
-                        citiesSet.add(cityName);
-                    }
-                }
-            });
-            
-            // מיון אלפבתי עברי מדויק
-            const sortedCities = Array.from(citiesSet).sort((a, b) => a.localeCompare(b, 'he'));
-            
-            sortedCities.forEach(city => {
-                const option = document.createElement('option');
-                option.value = city;
-                datalist.appendChild(option);
-            });
+            // עדכון ה-datalist מיד לאחר הטעינה לפי השפה הנוכחית
+            if (typeof currentLang !== 'undefined') {
+                updateCityDatalist(currentLang);
+            } else {
+                updateCityDatalist('he');
+            }
         }
-    } catch (err) {
-        console.error("שגיאה בטעינת מאגר הערים מהשרת הממשלתי:", err);
+    } catch (error) {
+        console.error("שגיאה במשיכת נתונים ממאגר הערים הממשלתי:", error);
     }
 }
+
+// פונקציה לעדכון הרשימה ב-HTML לפי השפה הנבחרת
+function updateCityDatalist(lang) {
+    const datalist = document.getElementById('israelCities');
+    if (!datalist || globalCities.length === 0) return;
+    
+    datalist.innerHTML = '';
+    
+    // מיון לפי שפה נוכחית והכנסה ל-Datalist
+    const sortedCities = [...globalCities].sort((a, b) => a[lang].localeCompare(b[lang]));
+    
+    sortedCities.forEach(city => {
+        if (city[lang]) {
+            const option = document.createElement('option');
+            option.value = city[lang];
+            datalist.appendChild(option);
+        }
+    });
+}
+window.updateCityDatalist = updateCityDatalist; // חשיפת הפונקציה לקובץ lang.js
 
 function showMainApp() {
     document.getElementById('authScreen').style.display = 'none';
@@ -121,6 +137,7 @@ function filterGamesList() {
             const parts = game.StartTimeStr.split(/[- :]/); 
             const gameDate = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4]);
             
+            // תאריך פורמט בעברית. אפשר גם לשנות לאנגלית ע"י שינוי 'he-IL' אם רוצים
             const formattedDate = gameDate.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' });
             const timeString = `${String(gameDate.getHours()).padStart(2, '0')}:${String(gameDate.getMinutes()).padStart(2, '0')}`;
             const diffMins = Math.floor((gameDate - new Date()) / 60000);
@@ -134,7 +151,9 @@ function filterGamesList() {
     });
 
     if (matchedCount === 0) {
-        container.innerHTML = `<p style="text-align:center; color:#7f8c8d; padding:20px;">לא נמצאו מפגשים שתואמים את הסינון שבחרת.</p>`;
+        // מתורגם באמצעות קובץ lang.js במידת האפשר, או נופל חזרה לעברית כברירת מחדל
+        const noGamesTxt = window.t ? window.t("noGames") : "לא נמצאו מפגשים שתואמים את הסינון שבחרת.";
+        container.innerHTML = `<p style="text-align:center; color:#7f8c8d; padding:20px;">${noGamesTxt}</p>`;
     }
 }
 window.filterGamesList = filterGamesList;
