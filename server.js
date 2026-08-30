@@ -57,7 +57,7 @@ async function initDB() {
             BEGIN
                 CREATE TABLE Games (
                     GameID INT IDENTITY(1,1) PRIMARY KEY,
-                    CourtID INT,
+                    CourtID INT NULL,
                     CreatorPlayerID INT,
                     StartTime DATETIME,
                     MissingPlayers INT,
@@ -77,9 +77,6 @@ async function initDB() {
             )
         `);
 
-        // ==========================================
-        // הטבלה החדשה לשמירת המשתתפים + מניעת כפילויות!
-        // ==========================================
         await sql.query(`
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='GameParticipants' and xtype='U')
             BEGIN
@@ -88,19 +85,27 @@ async function initDB() {
                     GameID INT,
                     PlayerID INT,
                     JoinedAt DATETIME DEFAULT GETDATE(),
-                    UNIQUE(GameID, PlayerID) -- מונע מהמסד לשמור את אותו משתמש פעמיים
+                    UNIQUE(GameID, PlayerID)
                 )
             END
         `);
 
+        // הוספת עמודות חדשות - מגדר שחקן והגדרות חברתיות למפגשים!
         await sql.query(`
             IF COL_LENGTH('Players', 'Age') IS NULL ALTER TABLE Players ADD Age INT DEFAULT 18;
             IF COL_LENGTH('Players', 'Gender') IS NULL ALTER TABLE Players ADD Gender NVARCHAR(10) DEFAULT N'לא מוגדר';
+            
             IF COL_LENGTH('Games', 'MinAge') IS NULL ALTER TABLE Games ADD MinAge INT DEFAULT 10;
             IF COL_LENGTH('Games', 'MaxAge') IS NULL ALTER TABLE Games ADD MaxAge INT DEFAULT 99;
+            
+            -- עמודות חדשות למפגשים חברתיים
+            IF COL_LENGTH('Games', 'IsSocial') IS NULL ALTER TABLE Games ADD IsSocial BIT DEFAULT 0;
+            IF COL_LENGTH('Games', 'City') IS NULL ALTER TABLE Games ADD City NVARCHAR(100);
+            IF COL_LENGTH('Games', 'PrefGender') IS NULL ALTER TABLE Games ADD PrefGender NVARCHAR(50) DEFAULT N'לא משנה';
+            IF COL_LENGTH('Games', 'EventType') IS NULL ALTER TABLE Games ADD EventType NVARCHAR(100);
         `);
 
-        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן, כולל מערכת משתתפים חכמה ושדרוג מגדר!");
+        console.log("✅ השרת מחובר בהצלחה למסד הנתונים בענן, התשתית למפגשים חברתיים הוקמה!");
     } catch (err) {
         console.error("DB Init Error:", err);
     }
@@ -163,50 +168,70 @@ app.get('/api/courts', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה" }); }
 });
 
-// יצירת משחק חדש
+// יצירת משחק חדש או מפגש חברתי
 app.post('/api/games', async (req, res) => {
-    const { courtId, creatorPlayerId, missingPlayers, startTime, minAge, maxAge } = req.body;
+    const { courtId, creatorPlayerId, missingPlayers, startTime, minAge, maxAge, isSocial, city, prefGender, eventType } = req.body;
     try {
         await sql.connect(sqlConfig);
-        await sql.query(`
-            INSERT INTO Games (CourtID, CreatorPlayerID, StartTime, MissingPlayers, GameStatus, MinAge, MaxAge) 
-            VALUES (${courtId}, ${creatorPlayerId}, '${startTime}', ${missingPlayers}, 'Open', ${minAge}, ${maxAge})
-        `);
-        res.status(201).json({ success: true, message: "המשחק נפתח בהצלחה!" });
+        
+        let query;
+        if (isSocial) {
+            // יצירת מפגש חברתי (ללא CourtID)
+            query = `
+                INSERT INTO Games (CreatorPlayerID, StartTime, MissingPlayers, GameStatus, MinAge, MaxAge, IsSocial, City, PrefGender, EventType) 
+                VALUES (${creatorPlayerId}, '${startTime}', ${missingPlayers}, 'Open', ${minAge}, ${maxAge}, 1, N'${city.replace(/'/g, "''")}', N'${prefGender}', N'${eventType}')
+            `;
+        } else {
+            // יצירת אירוע ספורט במגרש
+            query = `
+                INSERT INTO Games (CourtID, CreatorPlayerID, StartTime, MissingPlayers, GameStatus, MinAge, MaxAge, IsSocial) 
+                VALUES (${courtId}, ${creatorPlayerId}, '${startTime}', ${missingPlayers}, 'Open', ${minAge}, ${maxAge}, 0)
+            `;
+        }
+        
+        await sql.query(query);
+        res.status(201).json({ success: true, message: "האירוע נפתח בהצלחה!" });
     } catch (err) { 
-        res.status(500).json({ error: "תקלה בפתיחת המשחק." }); 
+        res.status(500).json({ error: "תקלה בפתיחת האירוע." }); 
     }
 });
 
-// משיכת משחקים רגילה (רק פעילים)
+// משיכת משחקים רגילה (כולל חברתיים)
 app.get('/api/games', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
+        // שימוש ב-LEFT JOIN כדי למשוך גם מפגשים חברתיים שאין להם מגרש מקושר ב-Courts
         const result = await sql.query(`
-            SELECT Games.GameID, Games.CreatorPlayerID, Players.FullName AS CreatorName, Courts.CourtName, Courts.CourtNameEn, 
+            SELECT Games.GameID, Games.CreatorPlayerID, Players.FullName AS CreatorName, 
+                   ISNULL(Courts.CourtName, '') AS CourtName, ISNULL(Courts.CourtNameEn, '') AS CourtNameEn, 
                    CONVERT(varchar, Games.StartTime, 120) AS StartTimeStr, Games.MissingPlayers, Games.GameStatus, 
                    Games.MinAge, Games.MaxAge,
+                   Games.IsSocial, ISNULL(Games.City, '') AS City, ISNULL(Games.PrefGender, '') AS PrefGender, ISNULL(Games.EventType, '') AS EventType,
                    ISNULL((SELECT CAST(PlayerID AS VARCHAR) + ',' FROM GameParticipants WHERE GameID = Games.GameID FOR XML PATH('')), '') AS JoinedPlayersStr
-            FROM Games JOIN Players ON Games.CreatorPlayerID = Players.PlayerID JOIN Courts ON Games.CourtID = Courts.CourtID
+            FROM Games 
+            JOIN Players ON Games.CreatorPlayerID = Players.PlayerID 
+            LEFT JOIN Courts ON Games.CourtID = Courts.CourtID
             WHERE Games.GameStatus = 'Open' AND Games.StartTime >= DATEADD(hour, -2, GETDATE());
         `);
         res.json(result.recordset);
-    } catch (err) { res.status(500).json({ error: "תקלה" }); }
+    } catch (err) { res.status(500).json({ error: "תקלה במשיכת האירועים" }); }
 });
 
-// ==========================================
-// משיכת היסטוריה אישית
-// ==========================================
+// משיכת היסטוריה אישית (כולל חברתיים)
 app.get('/api/games/history/:userId', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
         const userId = parseInt(req.params.userId);
         const result = await sql.query(`
-            SELECT Games.GameID, Games.CreatorPlayerID, Players.FullName AS CreatorName, Courts.CourtName, Courts.CourtNameEn, 
+            SELECT Games.GameID, Games.CreatorPlayerID, Players.FullName AS CreatorName, 
+                   ISNULL(Courts.CourtName, '') AS CourtName, ISNULL(Courts.CourtNameEn, '') AS CourtNameEn, 
                    CONVERT(varchar, Games.StartTime, 120) AS StartTimeStr, Games.MissingPlayers, Games.GameStatus, 
                    Games.MinAge, Games.MaxAge,
+                   Games.IsSocial, ISNULL(Games.City, '') AS City, ISNULL(Games.PrefGender, '') AS PrefGender, ISNULL(Games.EventType, '') AS EventType,
                    ISNULL((SELECT CAST(PlayerID AS VARCHAR) + ',' FROM GameParticipants WHERE GameID = Games.GameID FOR XML PATH('')), '') AS JoinedPlayersStr
-            FROM Games JOIN Players ON Games.CreatorPlayerID = Players.PlayerID JOIN Courts ON Games.CourtID = Courts.CourtID
+            FROM Games 
+            JOIN Players ON Games.CreatorPlayerID = Players.PlayerID 
+            LEFT JOIN Courts ON Games.CourtID = Courts.CourtID
             WHERE Games.CreatorPlayerID = ${userId} OR Games.GameID IN (SELECT GameID FROM GameParticipants WHERE PlayerID = ${userId})
             ORDER BY Games.StartTime DESC
         `);
@@ -214,7 +239,6 @@ app.get('/api/games/history/:userId', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "תקלה במשיכת היסטוריה" }); }
 });
 
-// הצטרפות חכמה למשחק + שליחת הודעת מערכת לצ'אט
 app.put('/api/games/:id/join', async (req, res) => {
     try {
         const gameId = req.params.id;
@@ -223,35 +247,23 @@ app.put('/api/games/:id/join', async (req, res) => {
 
         await sql.connect(sqlConfig);
         
-        // מוודא שעוד לא נרשם
         const checkJoined = await sql.query(`SELECT * FROM GameParticipants WHERE GameID = ${gameId} AND PlayerID = ${userId}`);
-        if (checkJoined.recordset.length > 0) {
-            return res.status(400).json({ error: "כבר נרשמת למשחק הזה!" });
-        }
+        if (checkJoined.recordset.length > 0) return res.status(400).json({ error: "כבר נרשמת לאירוע הזה!" });
 
         const check = await sql.query(`SELECT MissingPlayers, CreatorPlayerID FROM Games WHERE GameID = ${gameId}`);
         if (check.recordset.length === 0) return res.status(404).json({ error: "לא נמצא" });
-        
-        // לא נותן ליוצר להצטרף למשחק של עצמו
-        if (check.recordset[0].CreatorPlayerID === parseInt(userId)) {
-            return res.status(400).json({ error: "אתה היוצר של המשחק, אתה כבר בפנים!" });
-        }
+        if (check.recordset[0].CreatorPlayerID === parseInt(userId)) return res.status(400).json({ error: "אתה היוצר, אתה כבר בפנים!" });
 
-        // שליפת שם השמחק המצטרף לצורך ההתראה בצ'אט
         const userCheck = await sql.query(`SELECT FullName FROM Players WHERE PlayerID = ${userId}`);
-        const joiningUserName = userCheck.recordset.length > 0 ? userCheck.recordset[0].FullName : "שחקן חדש";
+        const joiningUserName = userCheck.recordset.length > 0 ? userCheck.recordset[0].FullName : "משתמש חדש";
 
         let missing = check.recordset[0].MissingPlayers;
         if (missing <= 0) return res.status(400).json({ error: "מלא!" });
         missing -= 1;
         
-        // הכנסה לטבלת המשתתפים
         await sql.query(`INSERT INTO GameParticipants (GameID, PlayerID) VALUES (${gameId}, ${userId})`);
-        // עדכון סטטוס המשחק
         await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = '${missing === 0 ? 'Full' : 'Open'}' WHERE GameID = ${gameId}`);
-        
-        // הכנסת הודעת מערכת אוטומטית לצ'אט של המשחק!
-        await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'🔔 ${joiningUserName} הצטרף/ה למשחק!')`);
+        await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'🔔 ${joiningUserName} הצטרף/ה!')`);
 
         res.json({ success: true, missingPlayers: missing });
     } catch (err) { res.status(500).json({ error: "תקלה בהצטרפות" }); }
@@ -264,21 +276,16 @@ app.put('/api/games/:id/leave', async (req, res) => {
         if (!userId) return res.status(400).json({ error: "שגיאת זיהוי משתמש" });
 
         await sql.connect(sqlConfig);
-        
-        // שליפת שם המשתמש שעוזב כדי שנוכל לרשום אותו בהתראה
         const userCheck = await sql.query(`SELECT FullName FROM Players WHERE PlayerID = ${userId}`);
-        const leavingUserName = userCheck.recordset.length > 0 ? userCheck.recordset[0].FullName : "שחקן";
+        const leavingUserName = userCheck.recordset.length > 0 ? userCheck.recordset[0].FullName : "משתמש";
 
-        // מחיקה מטבלת המשתתפים
         await sql.query(`DELETE FROM GameParticipants WHERE GameID = ${gameId} AND PlayerID = ${userId}`);
         
-        // עדכון שחקן חסר חזרה
         const check = await sql.query(`SELECT MissingPlayers FROM Games WHERE GameID = ${gameId}`);
         let missing = check.recordset[0].MissingPlayers + 1;
         await sql.query(`UPDATE Games SET MissingPlayers = ${missing}, GameStatus = 'Open' WHERE GameID = ${gameId}`);
         
-        // שליחת הודעת מערכת אוטומטית לצ'אט על כך שהשחקן ביטל את הגעתו
-        await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ ${leavingUserName} ביטל/ה את הגעתו/ה למשחק')`);
+        await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ ${leavingUserName} ביטל/ה הגעה')`);
 
         res.json({ success: true, missingPlayers: missing });
     } catch (err) { res.status(500).json({ error: "תקלה בעזיבה" }); }
@@ -291,17 +298,13 @@ app.put('/api/games/:id/status', async (req, res) => {
         
         await sql.connect(sqlConfig);
         const check = await sql.query(`SELECT CreatorPlayerID FROM Games WHERE GameID = ${gameId}`);
-        if (check.recordset.length === 0) return res.status(404).json({ error: "המשחק לא נמצא." });
-        if (check.recordset[0].CreatorPlayerID !== parseInt(userId)) {
-            return res.status(403).json({ error: "אין לך הרשאה! רק יוצר המשחק יכול לעדכן סטטוס." });
-        }
-        await sql.query(`UPDATE Games SET GameStatus = '${status}' WHERE GameID = ${gameId}`);
+        if (check.recordset.length === 0) return res.status(404).json({ error: "האירוע לא נמצא." });
+        if (check.recordset[0].CreatorPlayerID !== parseInt(userId)) return res.status(403).json({ error: "אין לך הרשאה!" });
         
-        // אם סטטוס המשחק שונה ל-'Cancelled' (בוטל), נשלח הודעת מערכת אוטומטית לצ'אט
+        await sql.query(`UPDATE Games SET GameStatus = '${status}' WHERE GameID = ${gameId}`);
         if (status === 'Cancelled') {
-            await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ המשחק בוטל על ידי היוצר')`);
+            await sql.query(`INSERT INTO GameMessages (GameID, SenderName, MessageText) VALUES (${gameId}, N'מערכת', N'❌ האירוע בוטל על ידי היוצר')`);
         }
-
         res.json({ success: true, newStatus: status });
     } catch (err) { res.status(500).json({ error: "תקלה בשרת" }); }
 });
