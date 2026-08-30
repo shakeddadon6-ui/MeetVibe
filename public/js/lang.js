@@ -98,8 +98,11 @@ function setLanguage(lang) {
     document.documentElement.dir = (lang === 'he') ? 'rtl' : 'ltr';
     document.documentElement.lang = lang; // זה אמור לעזור עם לוח השנה בדפדפנים מודרניים
     
-    const langBtn = document.getElementById('langToggleBtn');
-    if (langBtn) { langBtn.innerText = (lang === 'he') ? 'English (EN)' : 'עברית (HE)'; }
+const langBtn = document.getElementById('langToggleBtn');
+if (langBtn) { langBtn.innerText = (lang === 'he') ? 'English (EN)' : 'עברית (HE)'; }
+
+const authLangBtn = document.getElementById('authLangToggleBtn');
+if (authLangBtn) { authLangBtn.innerText = (lang === 'he') ? 'English (EN)' : 'עברית (HE)'; }
 
     // עדכון טקסטים רגילים
     document.querySelectorAll('[data-i18n]').forEach(el => { el.innerText = t(el.getAttribute('data-i18n')); });

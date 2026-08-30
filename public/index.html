@@ -9,33 +9,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="css/style.css">
-    
-    <style> 
-        .social-filter-bar {
-            display: flex;
-            gap: 10px;
-            padding: 10px 15px;
-            background: #fff;
-            border-radius: 10px;
-            margin: 10px 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-            flex-wrap: wrap;
-        }
-        .social-filter-bar select, .social-filter-bar input {
-            flex: 1;
-            min-width: 130px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            font-size: 0.95em;
-        }
-    </style>
 </head>
 <body>
 
     <datalist id="israelCities"></datalist>
 
     <div id="authScreen" class="auth-overlay">
+        <button id="authLangToggleBtn" class="auth-lang-btn" onclick="toggleLanguage()">English (EN)</button>
+
         <div class="auth-container">
             <h1>🤝 MeetVibe</h1>
             <div class="auth-tabs" id="authTabs">
@@ -55,7 +36,7 @@
                 <input type="tel" id="regPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
                 <input type="number" id="regAge" placeholder="גיל" data-i18n-placeholder="agePlaceholder" min="10" max="99" required>
                 
-                <select id="regGender" required style="margin-bottom: 10px; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; font-size: 1em;">
+                <select id="regGender" class="app-input" required>
                     <option value="" disabled selected data-i18n="genderPlaceholder">בחר מגדר</option>
                     <option value="זכר" data-i18n="genderMale">זכר</option>
                     <option value="נקבה" data-i18n="genderFemale">נקבה</option>
@@ -67,24 +48,24 @@
             </form>
 
             <form id="forgotForm" class="auth-form" style="display: none;">
-                <h3 style="margin-top: 0; color: #e74c3c;" data-i18n="resetTitle">איפוס סיסמה</h3>
+                <h3 class="reset-title" data-i18n="resetTitle">איפוס סיסמה</h3>
                 <input type="tel" id="forgotPhone" placeholder="מספר טלפון" data-i18n-placeholder="phonePlaceholder" required>
                 <input type="password" id="forgotNewPassword" placeholder="סיסמה חדשה" data-i18n-placeholder="newPasswordPlaceholder" required>
-                <button type="submit" style="background: #e74c3c;" data-i18n="updatePasswordBtn">עדכן סיסמה</button>
+                <button type="submit" class="reset-submit-btn" data-i18n="updatePasswordBtn">עדכן סיסמה</button>
                 <a class="forgot-pass-link" onclick="switchAuthTab('login')" data-i18n="backToLogin">חזור להתחברות</a>
             </form>
         </div>
     </div>
 
     <div id="mainApp" style="display: none;">
-        <div class="header-container" style="background: #8e44ad;">
+        <div class="header-container">
             <button class="top-btn" onclick="toggleDarkMode()" data-i18n="nightMode">🌙 לילה</button>
-            <button id="langToggleBtn" class="top-btn" onclick="toggleLanguage()" style="background: #27ae60; color: white;">English (EN)</button>
-            <h1 class="main-title" style="color: white;" data-i18n="appTitle">MeetVibe</h1>
+            <button id="langToggleBtn" class="top-btn lang-btn" onclick="toggleLanguage()">English (EN)</button>
+            <h1 class="main-title" data-i18n="appTitle">MeetVibe</h1>
             <button class="top-btn logout-btn" onclick="logout()" data-i18n="logout">🚪 התנתק</button>
         </div>
 
-        <h3 id="welcomeMessage" style="text-align: center; color: #8e44ad; margin-top: 15px;"></h3>
+        <h3 id="welcomeMessage" class="welcome-msg"></h3>
         
         <div class="form-container">
             <h3 data-i18n="formTitle">🥂 יצירת מפגש חדש</h3>
@@ -133,23 +114,23 @@
                 
                 <input type="number" id="gameMissingPlayers" class="app-input" placeholder="כמה אנשים חסרים?" data-i18n-placeholder="missingPlayersPlaceholder" min="1" max="50" required>
                 
-                <div style="display: flex; gap: 10px; width: 90%; margin: 10px auto;">
-                    <input type="number" id="gameMinAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מינימלי" data-i18n-placeholder="minAgePlaceholder" min="10" max="99">
-                    <input type="number" id="gameMaxAge" class="app-input" style="width: 100%; margin: 0;" placeholder="גיל מקסימלי" data-i18n-placeholder="maxAgePlaceholder" min="10" max="99">
+                <div class="age-inputs-wrapper">
+                    <input type="number" id="gameMinAge" class="app-input" placeholder="גיל מינימלי" data-i18n-placeholder="minAgePlaceholder" min="10" max="99">
+                    <input type="number" id="gameMaxAge" class="app-input" placeholder="גיל מקסימלי" data-i18n-placeholder="maxAgePlaceholder" min="10" max="99">
                 </div>
                 
-                <input type="date" id="gameDate" class="app-input" style="width: 90%; margin: 10px auto;" required>
+                <input type="date" id="gameDate" class="app-input date-input" required>
 
-                <div class="time-picker-wrapper" style="display: flex; margin-bottom: 15px; justify-content: center;">
-                    <span style="align-self: center; margin-left: 10px;" data-i18n="timeLabel">שעה:</span>
+                <div class="time-picker-wrapper">
+                    <span data-i18n="timeLabel">שעה:</span>
                     <select id="gameHour"></select><span class="time-picker-separator">:</span><select id="gameMinute"></select>
                 </div>
                 
-                <button type="button" class="submit-btn" style="background: #8e44ad;" onclick="createNewGame()" data-i18n="submitGameBtn">צור מפגש!</button>
+                <button type="button" class="submit-btn" onclick="createNewGame()" data-i18n="submitGameBtn">צור מפגש!</button>
             </div>
         </div>
 
-        <h2 style="color: #2c3e50; padding-right: 15px; margin-bottom: 5px;" data-i18n="activeGamesTitle">🔥 מפגשים פתוחים:</h2>
+        <h2 class="section-title" data-i18n="activeGamesTitle">🔥 מפגשים פתוחים:</h2>
         
         <div class="social-filter-bar">
             <input type="text" id="filterCity" list="israelCities" placeholder="🔍 סנן לפי עיר..." data-i18n-placeholder="filterCityPlaceholder">
@@ -173,7 +154,7 @@
         <div class="chat-modal">
             <div class="chat-header">
                 <span id="chatTitle" data-i18n="chatTitle">💬 צ'אט</span>
-                <button onclick="closeChat()" style="background:none; border:none; color:white; font-size:1.5em; cursor:pointer;">&times;</button>
+                <button class="chat-close-btn" onclick="closeChat()">&times;</button>
             </div>
             <div id="chatMessages" class="chat-messages"></div>
             <div class="chat-input-area">
@@ -185,18 +166,18 @@
     
     <div id="whatsappModal" class="modal-overlay">
         <div class="modal-content">
-            <h2 style="margin-top: 0; color: #333;" data-i18n="gameCreatedTitle">🎉 המפגש נפתח!</h2>
+            <h2 data-i18n="gameCreatedTitle">🎉 המפגש נפתח!</h2>
             <button id="waShareBtn" class="wa-btn" data-i18n="whatsappBtn">💬 שלח בוואטסאפ</button>
-            <button onclick="closeModal()" class="close-btn" style="background:none; border:none; color:gray; text-decoration:underline; font-size: 1.1em; cursor:pointer; margin-top:10px;" data-i18n="closeBtn">סגור</button>
+            <button onclick="closeModal()" class="close-modal-link" data-i18n="closeBtn">סגור</button>
         </div>
     </div>
 
     <div id="toastNotification">התראה חדשה!</div>
 
-    <script src="js/lang.js?v=8.3"></script>
-    <script src="js/app.js?v=8.3"></script>
-    <script src="js/auth.js?v=8.3"></script>
-    <script src="js/chat.js?v=8.3"></script>
+    <script src="js/lang.js?v=8.5"></script>
+    <script src="js/app.js?v=8.5"></script>
+    <script src="js/auth.js?v=8.5"></script>
+    <script src="js/chat.js?v=8.5"></script>
 
 </body>
 </html>

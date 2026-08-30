@@ -810,3 +810,130 @@ body.dark-mode #toastNotification {
     background: linear-gradient(135deg, #e94560, #c7364f);
     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
+
+/* ========================================== */
+/* שדרוגים ותוספות חדשות לעיצוב */
+/* ========================================== */
+
+/* כפתור החלפת שפה במסך התחברות */
+.auth-lang-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: none;
+    background: #27ae60;
+    color: white;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.9em;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.auth-lang-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(39, 174, 96, 0.4);
+}
+
+/* מעטפת שדות גילאים ביצירת מפגש */
+.age-inputs-wrapper {
+    display: flex;
+    gap: 10px;
+    width: 90%;
+    margin: 10px auto;
+}
+
+.age-inputs-wrapper input {
+    width: 100%;
+    margin: 0 !important;
+}
+
+/* שדה תאריך */
+.date-input {
+    width: 90% !important;
+    margin: 10px auto !important;
+}
+
+/* כותרת איפוס סיסמה */
+.reset-title {
+    margin-top: 0;
+    color: #e74c3c;
+    font-weight: 800;
+}
+
+/* כפתור איפוס סיסמה */
+.reset-submit-btn {
+    background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+    box-shadow: 0 6px 15px rgba(231, 76, 60, 0.3) !important;
+}
+
+.reset-submit-btn:hover {
+    box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4) !important;
+}
+
+/* כפתור סגירת צ'אט */
+.chat-close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+/* לינק סגירת מודל וואטסאפ */
+.close-modal-link {
+    background: none;
+    border: none;
+    color: #718096;
+    text-decoration: underline;
+    font-size: 1.05em;
+    cursor: pointer;
+    margin-top: 15px;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.close-modal-link:hover {
+    color: #2d3748;
+}
+
+/* הודעת ברוך הבא */
+.welcome-msg {
+    text-align: center;
+    color: #8e44ad;
+    margin-top: 15px;
+    font-size: 1.25em;
+    font-weight: 700;
+}
+
+/* כותרת מפגשים פתוחים */
+.section-title {
+    color: #2c3e50;
+    padding-right: 15px;
+    margin-bottom: 5px;
+    font-size: 1.5em;
+    font-weight: 800;
+}
+
+/* התאמות Dark Mode לרכיבים החדשים */
+body.dark-mode .auth-lang-btn {
+    background: #219653;
+    box-shadow: 0 4px 12px rgba(33, 150, 83, 0.3);
+}
+
+body.dark-mode .welcome-msg,
+body.dark-mode .section-title {
+    color: #f1c40f;
+}
+
+body.dark-mode .close-modal-link {
+    color: #a0aec0;
+}
+
+body.dark-mode .close-modal-link:hover {
+    color: white;
+}
