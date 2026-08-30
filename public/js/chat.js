@@ -1,13 +1,13 @@
 // ==========================================
-// קובץ chat.js - ניהול הודעות וצ'אט מתורגם
+// קובץ chat.js - ניהול הודעות וצ'אט
 // ==========================================
 
 let activeChatGameId = null; 
 let chatPollingInterval = null;
 
-function openChat(gameId, courtName) {
+function openChat(gameId, eventName) {
     activeChatGameId = gameId; 
-    document.getElementById('chatTitle').innerText = `💬 ${t("chatTitle")}: ${courtName}`; 
+    document.getElementById('chatTitle').innerText = `💬 צ'אט: ${eventName}`; 
     document.getElementById('chatModal').style.display = 'flex';
     fetchChatMessages(); 
     chatPollingInterval = setInterval(fetchChatMessages, 2000);
@@ -24,14 +24,13 @@ window.closeChat = closeChat;
 async function fetchChatMessages() {
     if (!activeChatGameId) return;
     try {
-        // שבירת מטמון: מבטיח שתמיד נקבל את ההודעות הכי חדשות מהשרת!
         const response = await fetch(`/api/games/${activeChatGameId}/chat?t=` + Date.now()); 
         const messages = await response.json();
         const chatBox = document.getElementById('chatMessages'); 
         chatBox.innerHTML = ''; 
         
         if (messages.length === 0) { 
-            chatBox.innerHTML = `<p style="text-align:center; color:gray; margin-top:20px;">${t("chatEmpty")}</p>`; 
+            chatBox.innerHTML = `<p style="text-align:center; color:gray; margin-top:20px;">אין הודעות. תגיד שלום! 👋</p>`; 
             return; 
         }
         
@@ -39,7 +38,7 @@ async function fetchChatMessages() {
             const isMe = msg.SenderName === myUsername; 
             const msgDiv = document.createElement('div'); 
             msgDiv.className = `message ${isMe ? 'msg-me' : 'msg-other'}`;
-            msgDiv.innerHTML = `<span class="msg-sender">${isMe ? t("chatMe") : msg.SenderName}</span>${msg.MessageText}<span class="msg-time">${msg.SendTime.substring(0, 5)}</span>`; 
+            msgDiv.innerHTML = `<span class="msg-sender">${isMe ? "אני" : msg.SenderName}</span>${msg.MessageText}<span class="msg-time">${msg.SendTime.substring(0, 5)}</span>`; 
             chatBox.appendChild(msgDiv);
         });
         chatBox.scrollTop = chatBox.scrollHeight;
